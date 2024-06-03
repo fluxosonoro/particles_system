@@ -64,3 +64,6 @@ class Particle:
 
     def update_pos(self):
         self.pos += self.dir * self.speed
+    
+    def change_pos(self, x, y):
+        self.pos = Vector2(x,y)
