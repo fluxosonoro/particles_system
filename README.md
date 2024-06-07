@@ -25,7 +25,7 @@ You can customize the behavior of the particle system by modifying the variables
   - True: Particles will be represented by images.
   - False: Particles will be represented by circles.
 
-- `use_camera`: Defines whether the camera will be used to interact with the particles.
+- `use_camera`: Defines whether the camera will be activated.
 
   - True: Uses the camera to interact with the particles.
   - False: Does not use the camera.
