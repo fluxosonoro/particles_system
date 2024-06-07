@@ -5,22 +5,22 @@ from Particle import Particle
 import random 
 from sys import exit
 import os
-from dual_slit import *
+from double_slit import *
 import cv2
 import mediapipe as mp
 
 use_image = True 
-use_camera = False
-use_dual_slit = True
+use_camera = True
+use_double_slit = True
 use_face_interpolation = False
 number_of_particles = 500
-particles_speed = 1
+particles_speed = 0
 particles_radius = 5
 
 images = []
 points = []
 particles = []
-WIDTH, HEIGHT = 1280, 720
+WIDTH, HEIGHT = 0, 0
 if(use_camera):
     cap = cv2.VideoCapture(0)
     mp_face_mesh = mp.solutions.face_mesh
@@ -61,11 +61,7 @@ def main():
     global number_of_particles
     global particles
     # Initialising Pygame window, caption and clock.
-    pygame.init()
-   
-    screen = pygame.display.set_mode((WIDTH, HEIGHT))
-    pygame.display.set_caption("Particle Collider")
-    clock = pygame.time.Clock()
+
 
     bg = pygame.Surface((WIDTH, HEIGHT))
     bg.fill((20, 20, 20))
@@ -76,7 +72,7 @@ def main():
         number_of_particles = len(images)
     
     for i in range(number_of_particles):
-        if use_dual_slit:
+        if use_double_slit:
             pos = points[i]
         else:
             pos = (random.randint(0, WIDTH), random.randint(0, HEIGHT))
@@ -89,11 +85,14 @@ def main():
         else:
             add_particle(pos, dir, speed, radius, (79, 187, 224), use_image=False)
 
-    while True:
+    running = True
+    while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                pygame.quit()
-                exit()
+                running = False
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    running = False
 
         if(use_camera):
             process_face_detection(screen)
@@ -108,6 +107,11 @@ def main():
 
         # clock.tick(30)
         pygame.display.update()
+
+    pygame.quit()
+    if use_camera:
+        cap.release()
+    exit()
 
 def process_face_detection(screen):
     ret, camera_image = cap.read()
@@ -138,6 +142,15 @@ def process_face_detection(screen):
 
 if __name__ == "__main__":
     generate_images()
+
+    pygame.init()
+   
+    screen = pygame.display.set_mode((0,0), pygame.FULLSCREEN)
+    pygame.display.set_caption("Particle Collider")
+    clock = pygame.time.Clock()
+
+    WIDTH, HEIGHT = pygame.display.get_surface().get_size()
+
     points_x, points_y = generate_points()
     x_min, x_max = -10, 10
     y_min, y_max = -4, 4
