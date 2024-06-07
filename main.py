@@ -8,12 +8,12 @@ import cv2
 import mediapipe as mp
 
 use_image = False 
-use_camera = True
+use_camera = False
 use_double_slit = True
 use_face_interpolation = False
 use_collision = False
-number_of_particles = 200
-particles_speed = 2
+number_of_particles = 2000
+particles_speed = 0
 particles_radius = 5
 
 images = []
@@ -33,11 +33,14 @@ def generate_images():
             images.append(pygame.image.load(os.path.join(path, f)))
 
 def generate_points():
+    global number_of_particles
     experiment = doubleSlit()
     experiment.distance_to_screen = 10
     experiment.slit_dist = 3 
     experiment.clear_screen()
-    experiment.electron_beam(num_electrons=len(images))
+    if use_image:
+        number_of_particles = len(images)
+    experiment.electron_beam(num_electrons=number_of_particles)
     return experiment.get_positions()
 
 def transformar_pontos(pontos_x, pontos_y, x_min, x_max, y_min, y_max, screen_width, screen_height):
