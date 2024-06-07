@@ -9,12 +9,13 @@ from double_slit import *
 import cv2
 import mediapipe as mp
 
-use_image = True 
+use_image = False 
 use_camera = True
 use_double_slit = True
 use_face_interpolation = False
-number_of_particles = 500
-particles_speed = 0
+use_collision = False
+number_of_particles = 200
+particles_speed = 2
 particles_radius = 5
 
 images = []
@@ -102,7 +103,7 @@ def main():
         # Draw the particles.
         for particle in particles:
             particle.draw(screen)
-            particle.guidance([0, WIDTH, 0, HEIGHT], particles)
+            particle.guidance([0, WIDTH, 0, HEIGHT], particles, use_collision)
             particle.update_pos()
 
         # clock.tick(30)

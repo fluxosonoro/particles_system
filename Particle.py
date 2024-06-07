@@ -23,23 +23,26 @@ class Particle:
         else:
             pygame.draw.circle(screen, self.color, (int(self.pos[0]), int(self.pos[1])), self.radius)
 
-    def guidance(self, box, particles):
+    def check_collision(self, use_collision, particles):
+        if(use_collision):
+            for particle in particles:
+                if particle.pos != self.pos and self.is_collided(particle):
+                    if not self.collision_status:
+                        self.collision_status = True
+                        self.collision_update_dir(particle)
+                        
+                        particle.collision_status = True
+                        particle.collision_update_dir(self)
+
+                        break
+                    else:
+                        break
+            else:
+                self.collision_status = False
+    
+    def guidance(self, box, particles, use_collision):
         self.boundary_update_dir(box)
-
-        for particle in particles:
-            if particle.pos != self.pos and self.is_collided(particle):
-                if not self.collision_status:
-                    self.collision_status = True
-                    self.collision_update_dir(particle)
-                    
-                    particle.collision_status = True
-                    particle.collision_update_dir(self)
-
-                    break
-                else:
-                    break
-        else:
-            self.collision_status = False
+        self.check_collision(use_collision, particles)
 
     def boundary_update_dir(self, box):
         if self.pos.x <= box[0] + self.radius and self.dir.x < 0:
