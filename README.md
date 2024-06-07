@@ -47,6 +47,6 @@ You can customize the behavior of the particle system by modifying the variables
 
 - `number_of_particles`: Defines the number of particles in the system.
 
-- particles_speed: Defines the speed of particles.
+- `particles_speed`: Defines the speed of particles.
 
-- particles_radius: Defines the radius of particles.
+- `particles_radius`: Defines the radius of particles.
