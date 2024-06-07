@@ -140,9 +140,6 @@ def config_camera():
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, HEIGHT)
         mp_face_mesh = mp.solutions.face_mesh
         face_mesh = mp_face_mesh.FaceMesh(static_image_mode=False, max_num_faces=1, min_detection_confidence=0.5)
-        cam_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-        cam_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        print(f"Camera resolution: {cam_width} x {cam_height}")
 
 if __name__ == "__main__":
 
