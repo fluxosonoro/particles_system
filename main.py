@@ -1,5 +1,3 @@
-# main.py
-
 import pygame
 from Particle import Particle
 import random 
@@ -12,7 +10,7 @@ import mediapipe as mp
 use_image = True 
 use_camera = True
 use_double_slit = True
-use_face_interpolation = False
+use_face_interpolation = True
 number_of_particles = 500
 particles_speed = 0
 particles_radius = 5
@@ -21,11 +19,10 @@ images = []
 points = []
 particles = []
 WIDTH, HEIGHT = 0, 0
-if(use_camera):
-    cap = cv2.VideoCapture(0)
-    mp_face_mesh = mp.solutions.face_mesh
-    face_mesh = mp_face_mesh.FaceMesh(static_image_mode=False, max_num_faces=1, min_detection_confidence=0.5)
 
+# Definindo variáveis globais
+cap = None
+face_mesh = None
 
 def generate_images():
     path = "output_images_resized"
@@ -54,14 +51,51 @@ def transformar_pontos(pontos_x, pontos_y, x_min, x_max, y_min, y_max, screen_wi
     return novos_pontos
 
 def add_particle(position, direction, speed, radius, color_or_image, use_image):
-     particles.append(Particle(position, direction, speed, radius, color_or_image, use_image))
+    particles.append(Particle(position, direction, speed, radius, color_or_image, use_image))
 
+def config_camera():
+    global cap, face_mesh
+    if use_camera:
+        cap = cv2.VideoCapture(0)
+        mp_face_mesh = mp.solutions.face_mesh
+        face_mesh = mp_face_mesh.FaceMesh(static_image_mode=False, max_num_faces=1, min_detection_confidence=0.5)
+        # Obtendo a largura e altura da imagem da câmera
+        cam_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        cam_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        print(f"Camera resolution: {cam_width} x {cam_height}")
+
+def process_face_detection(screen):
+    global cap, face_mesh
+    ret, camera_image = cap.read()
+    if ret:
+        camera_surf = pygame.image.frombuffer(camera_image.tobytes(), camera_image.shape[1::-1], "BGR")
+        screen.blit(camera_surf, (0, 0))
+
+    landmarks = []
+
+    # camera_image = cv2.flip(camera_image, -1) 
+    results = face_mesh.process(camera_image)
+    if results.multi_face_landmarks:
+        for face_landmarks in results.multi_face_landmarks:
+            for landmark in face_landmarks.landmark:
+                x = int(landmark.x * camera_image.shape[1]) + 10
+                y = int(landmark.y * camera_image.shape[0]) + 10
+                landmarks.append((x, y))
+
+        if use_face_interpolation:
+            for i, (particle, landmark) in enumerate(zip(particles, landmarks)):
+                particle.pos.x = (1 - 0.1) * particle.pos.x + 0.1 * landmark[0]
+                particle.pos.y = (1 - 0.1) * particle.pos.y + 0.1 * landmark[1] 
+
+    # Draw the face landmarks
+    for landmark in landmarks:
+        pygame.draw.circle(screen, (255, 0, 0), landmark, 1)
 
 def main():
     global number_of_particles
     global particles
+    global cap
     # Initialising Pygame window, caption and clock.
-
 
     bg = pygame.Surface((WIDTH, HEIGHT))
     bg.fill((20, 20, 20))
@@ -94,7 +128,7 @@ def main():
                 if event.key == pygame.K_ESCAPE:
                     running = False
 
-        if(use_camera):
+        if use_camera:
             process_face_detection(screen)
         else:
             screen.blit(bg, (0, 0))
@@ -105,7 +139,7 @@ def main():
             particle.guidance([0, WIDTH, 0, HEIGHT], particles)
             particle.update_pos()
 
-        # clock.tick(30)
+        clock.tick(30)
         pygame.display.update()
 
     pygame.quit()
@@ -113,43 +147,19 @@ def main():
         cap.release()
     exit()
 
-def process_face_detection(screen):
-    ret, camera_image = cap.read()
-    if ret:
-        camera_surf = pygame.image.frombuffer(camera_image.tobytes(), camera_image.shape[1::-1], "BGR")
-        screen.blit(camera_surf, (0, 0))
-
-    landmarks = []
-
-    # camera_image = cv2.flip(camera_image, -1) 
-    results = face_mesh.process(camera_image)
-    if results.multi_face_landmarks:
-        
-        for face_landmarks in results.multi_face_landmarks:
-            for landmark in face_landmarks.landmark:
-                x = int(landmark.x * camera_image.shape[1]) + 10
-                y = int(landmark.y * camera_image.shape[0]) + 10
-                landmarks.append((x, y))
-
-        if use_face_interpolation:
-            for i, (particle, landmark) in enumerate(zip(particles, landmarks)):
-                particle.pos.x = (1 - 0.1) * particle.pos.x + 0.1 * landmark[0]
-                particle.pos.y = (1 - 0.1) * particle.pos.y + 0.1 * landmark[1] 
-
-    # Draw the face landmarks
-    for landmark in landmarks:
-        pygame.draw.circle(screen, (255, 0, 0), landmark, 1)
-
 if __name__ == "__main__":
+    config_camera()
     generate_images()
 
     pygame.init()
    
     screen = pygame.display.set_mode((0,0), pygame.FULLSCREEN)
-    pygame.display.set_caption("Particle Collider")
+    pygame.display.set_caption("Particle Simulation")
     clock = pygame.time.Clock()
 
     WIDTH, HEIGHT = pygame.display.get_surface().get_size()
+
+    print(f"TAMANHO DA TELA: {WIDTH}, {HEIGHT}")
 
     points_x, points_y = generate_points()
     x_min, x_max = -10, 10
