@@ -18,9 +18,8 @@ particles_radius = 5
 images = []
 points = []
 particles = []
-WIDTH, HEIGHT = 0, 0
+WIDTH, HEIGHT = 500, 500  # Definindo o tamanho padrão da janela
 
-# Definindo variáveis globais
 cap = None
 face_mesh = None
 
@@ -53,33 +52,22 @@ def transformar_pontos(pontos_x, pontos_y, x_min, x_max, y_min, y_max, screen_wi
 def add_particle(position, direction, speed, radius, color_or_image, use_image):
     particles.append(Particle(position, direction, speed, radius, color_or_image, use_image))
 
-def config_camera():
-    global cap, face_mesh
-    if use_camera:
-        cap = cv2.VideoCapture(0)
-        mp_face_mesh = mp.solutions.face_mesh
-        face_mesh = mp_face_mesh.FaceMesh(static_image_mode=False, max_num_faces=1, min_detection_confidence=0.5)
-        # Obtendo a largura e altura da imagem da câmera
-        cam_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-        cam_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        print(f"Camera resolution: {cam_width} x {cam_height}")
-
 def process_face_detection(screen):
     global cap, face_mesh
     ret, camera_image = cap.read()
     if ret:
+        camera_image = cv2.resize(camera_image, (WIDTH, HEIGHT))  # Redimensionar a imagem da câmera para o tamanho da janela
         camera_surf = pygame.image.frombuffer(camera_image.tobytes(), camera_image.shape[1::-1], "BGR")
         screen.blit(camera_surf, (0, 0))
 
     landmarks = []
 
-    # camera_image = cv2.flip(camera_image, -1) 
     results = face_mesh.process(camera_image)
     if results.multi_face_landmarks:
         for face_landmarks in results.multi_face_landmarks:
             for landmark in face_landmarks.landmark:
-                x = int(landmark.x * camera_image.shape[1]) + 10
-                y = int(landmark.y * camera_image.shape[0]) + 10
+                x = int(landmark.x * WIDTH)  # Usar WIDTH em vez de camera_image.shape[1]
+                y = int(landmark.y * HEIGHT)  # Usar HEIGHT em vez de camera_image.shape[0]
                 landmarks.append((x, y))
 
         if use_face_interpolation:
@@ -87,7 +75,6 @@ def process_face_detection(screen):
                 particle.pos.x = (1 - 0.1) * particle.pos.x + 0.1 * landmark[0]
                 particle.pos.y = (1 - 0.1) * particle.pos.y + 0.1 * landmark[1] 
 
-    # Draw the face landmarks
     for landmark in landmarks:
         pygame.draw.circle(screen, (255, 0, 0), landmark, 1)
 
@@ -95,7 +82,6 @@ def main():
     global number_of_particles
     global particles
     global cap
-    # Initialising Pygame window, caption and clock.
 
     bg = pygame.Surface((WIDTH, HEIGHT))
     bg.fill((20, 20, 20))
@@ -133,7 +119,6 @@ def main():
         else:
             screen.blit(bg, (0, 0))
 
-        # Draw the particles.
         for particle in particles:
             particle.draw(screen)
             particle.guidance([0, WIDTH, 0, HEIGHT], particles)
@@ -147,19 +132,30 @@ def main():
         cap.release()
     exit()
 
+def config_camera():
+    global cap, face_mesh
+    if use_camera:
+        cap = cv2.VideoCapture(0)
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, WIDTH)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, HEIGHT)
+        mp_face_mesh = mp.solutions.face_mesh
+        face_mesh = mp_face_mesh.FaceMesh(static_image_mode=False, max_num_faces=1, min_detection_confidence=0.5)
+        cam_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        cam_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        print(f"Camera resolution: {cam_width} x {cam_height}")
+
 if __name__ == "__main__":
-    config_camera()
+
     generate_images()
 
     pygame.init()
-   
+
     screen = pygame.display.set_mode((0,0), pygame.FULLSCREEN)
+    WIDTH, HEIGHT = pygame.display.get_surface().get_size()
     pygame.display.set_caption("Particle Simulation")
     clock = pygame.time.Clock()
 
-    WIDTH, HEIGHT = pygame.display.get_surface().get_size()
-
-    print(f"TAMANHO DA TELA: {WIDTH}, {HEIGHT}")
+    config_camera()
 
     points_x, points_y = generate_points()
     x_min, x_max = -10, 10
