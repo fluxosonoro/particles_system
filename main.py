@@ -7,13 +7,13 @@ from double_slit import *
 import cv2
 import mediapipe as mp
 
-use_image = False 
-use_camera = False
+use_image = True 
+use_camera = True
 use_double_slit = True
 use_face_interpolation = False
 use_collision = False
-number_of_particles = 2000
-particles_speed = 0
+number_of_particles = 200
+particles_speed = 2
 particles_radius = 5
 
 images = []
@@ -24,6 +24,10 @@ WIDTH, HEIGHT = 500, 500  # Definindo o tamanho padrão da janela
 cap = None
 face_mesh = None
 
+# Variáveis para controlar o tempo de criação de partículas
+particle_timer = 0
+particle_interval = 100  # Intervalo de 1 segundo para a criação de partículas (em milissegundos)
+
 def generate_images():
     path = "output_images_resized"
     valid_images = [".jpg",".gif",".png",".tga"]
@@ -33,14 +37,11 @@ def generate_images():
             images.append(pygame.image.load(os.path.join(path, f)))
 
 def generate_points():
-    global number_of_particles
     experiment = doubleSlit()
     experiment.distance_to_screen = 10
     experiment.slit_dist = 3 
     experiment.clear_screen()
-    if use_image:
-        number_of_particles = len(images)
-    experiment.electron_beam(num_electrons=number_of_particles)
+    experiment.electron_beam(num_electrons=len(images))
     return experiment.get_positions()
 
 def transformar_pontos(pontos_x, pontos_y, x_min, x_max, y_min, y_max, screen_width, screen_height):
@@ -86,6 +87,7 @@ def main():
     global number_of_particles
     global particles
     global cap
+    global particle_timer
 
     bg = pygame.Surface((WIDTH, HEIGHT))
     bg.fill((20, 20, 20))
@@ -95,20 +97,6 @@ def main():
     if use_image:
         number_of_particles = len(images)
     
-    for i in range(number_of_particles):
-        if use_double_slit:
-            pos = points[i]
-        else:
-            pos = (random.randint(0, WIDTH), random.randint(0, HEIGHT))
-            
-        dir = random.choice(directions)
-        speed = particles_speed
-        radius = particles_radius
-        if use_image:
-            add_particle(pos, dir, speed, radius, images[i], use_image=True)
-        else:
-            add_particle(pos, dir, speed, radius, (79, 187, 224), use_image=False)
-
     running = True
     while running:
         for event in pygame.event.get():
@@ -122,6 +110,23 @@ def main():
             process_face_detection(screen)
         else:
             screen.blit(bg, (0, 0))
+
+        current_time = pygame.time.get_ticks()
+        if current_time - particle_timer > particle_interval:
+            particle_timer = current_time
+            if len(particles) < number_of_particles:
+                if use_double_slit:
+                    pos = points[len(particles)]
+                else:
+                    pos = (random.randint(0, WIDTH), random.randint(0, HEIGHT))
+                    
+                dir = random.choice(directions)
+                speed = particles_speed
+                radius = particles_radius
+                if use_image:
+                    add_particle(pos, dir, speed, radius, images[len(particles)], use_image=True)
+                else:
+                    add_particle(pos, dir, speed, radius, (79, 187, 224), use_image=False)
 
         for particle in particles:
             particle.draw(screen)
