@@ -6,23 +6,28 @@ import os
 from double_slit import *
 import cv2
 import mediapipe as mp
+import math
+from pygame.math import Vector2
 
-use_image = False 
-use_camera = False
-use_double_slit = True
-use_face_interpolation = False
+use_image = True  
 use_collision = False
+use_double_slit = True
 number_of_particles = 2000
-particles_speed = 0
-particles_radius = 5
+particles_speed = 15
+particles_radius = 2
 
 images = []
 points = []
 particles = []
-WIDTH, HEIGHT = 500, 500  # Definindo o tamanho padrão da janela
+WIDTH, HEIGHT = 500, 500
 
 cap = None
 face_mesh = None
+face_detected = False
+
+# Variáveis para controlar o tempo de criação de partículas
+particle_timer = 0
+particle_interval = 1  # Intervalo para a criação de partículas (em milissegundos)
 
 def generate_images():
     path = "output_images_resized"
@@ -56,59 +61,61 @@ def transformar_pontos(pontos_x, pontos_y, x_min, x_max, y_min, y_max, screen_wi
 def add_particle(position, direction, speed, radius, color_or_image, use_image):
     particles.append(Particle(position, direction, speed, radius, color_or_image, use_image))
 
-def process_face_detection(screen):
-    global cap, face_mesh
-    ret, camera_image = cap.read()
-    if ret:
-        camera_image = cv2.resize(camera_image, (WIDTH, HEIGHT))  # Redimensionar a imagem da câmera para o tamanho da janela
-        camera_surf = pygame.image.frombuffer(camera_image.tobytes(), camera_image.shape[1::-1], "BGR")
-        screen.blit(camera_surf, (0, 0))
+def set_particles_speed(speed):
+    global particles_speed
+    particles_speed = speed
+    for particle in particles:
+        particle.speed = particles_speed
 
-    landmarks = []
+def process_face_detection(screen):
+    global cap, face_mesh, face_detected
+    ret, camera_image = cap.read()
 
     results = face_mesh.process(camera_image)
+    
     if results.multi_face_landmarks:
-        for face_landmarks in results.multi_face_landmarks:
-            for landmark in face_landmarks.landmark:
-                x = int(landmark.x * WIDTH)  # Usar WIDTH em vez de camera_image.shape[1]
-                y = int(landmark.y * HEIGHT)  # Usar HEIGHT em vez de camera_image.shape[0]
-                landmarks.append((x, y))
+        face_detected = True
+        set_particles_speed(particles_speed)
 
-        if use_face_interpolation:
-            for i, (particle, landmark) in enumerate(zip(particles, landmarks)):
-                particle.pos.x = (1 - 0.1) * particle.pos.x + 0.1 * landmark[0]
-                particle.pos.y = (1 - 0.1) * particle.pos.y + 0.1 * landmark[1] 
+def draw_particles():
+    for particle in particles:
+        particle.draw(screen)
+        if face_detected:
+            particle.guidance([0, WIDTH, 0, HEIGHT], particles, use_collision)
+            particle.update_pos()
 
-    for landmark in landmarks:
-        pygame.draw.circle(screen, (255, 0, 0), landmark, 1)
+def create_particle():
+    global particle_timer, particle_interval
+    current_time = pygame.time.get_ticks()
+    if current_time - particle_timer > particle_interval:
+        particle_timer = current_time
+        if len(particles) < number_of_particles:
+            if use_double_slit:
+                pos = points[len(particles)]
+            else:
+                pos = (random.randint(0, WIDTH), random.randint(0, HEIGHT))
+                
+            angle = random.uniform(0, 2 * math.pi)  
+            dir = Vector2(math.cos(angle), math.sin(angle))
+            speed = particles_speed if face_detected else 0
+            radius = particles_radius
+            if use_image:
+                add_particle(pos, dir, speed, radius, images[len(particles)], use_image=True)
+            else:
+                add_particle(pos, dir, speed, radius, (255, 255, 255), use_image=False)
 
 def main():
     global number_of_particles
     global particles
     global cap
+    global face_detected
 
     bg = pygame.Surface((WIDTH, HEIGHT))
     bg.fill((20, 20, 20))
-
-    directions = [-1, 1]
  
     if use_image:
         number_of_particles = len(images)
     
-    for i in range(number_of_particles):
-        if use_double_slit:
-            pos = points[i]
-        else:
-            pos = (random.randint(0, WIDTH), random.randint(0, HEIGHT))
-            
-        dir = random.choice(directions)
-        speed = particles_speed
-        radius = particles_radius
-        if use_image:
-            add_particle(pos, dir, speed, radius, images[i], use_image=True)
-        else:
-            add_particle(pos, dir, speed, radius, (79, 187, 224), use_image=False)
-
     running = True
     while running:
         for event in pygame.event.get():
@@ -118,32 +125,28 @@ def main():
                 if event.key == pygame.K_ESCAPE:
                     running = False
 
-        if use_camera:
-            process_face_detection(screen)
-        else:
-            screen.blit(bg, (0, 0))
+        screen.blit(bg, (0, 0))
 
-        for particle in particles:
-            particle.draw(screen)
-            particle.guidance([0, WIDTH, 0, HEIGHT], particles, use_collision)
-            particle.update_pos()
+        if not face_detected:
+            process_face_detection(screen)
+
+        create_particle()
+        draw_particles()
 
         clock.tick(30)
         pygame.display.update()
 
     pygame.quit()
-    if use_camera:
-        cap.release()
+    cap.release()
     exit()
 
 def config_camera():
     global cap, face_mesh
-    if use_camera:
-        cap = cv2.VideoCapture(0)
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, WIDTH)
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, HEIGHT)
-        mp_face_mesh = mp.solutions.face_mesh
-        face_mesh = mp_face_mesh.FaceMesh(static_image_mode=False, max_num_faces=1, min_detection_confidence=0.5)
+    cap = cv2.VideoCapture(0)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, WIDTH)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, HEIGHT)
+    mp_face_mesh = mp.solutions.face_mesh
+    face_mesh = mp_face_mesh.FaceMesh(static_image_mode=False, max_num_faces=1, min_detection_confidence=0.5)
 
 if __name__ == "__main__":
 
