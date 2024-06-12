@@ -10,18 +10,16 @@ import math
 from pygame.math import Vector2
 
 use_image = True  
-use_face_detection = True
+use_collision = False
 use_double_slit = True
-use_face_interpolation = False
-use_collision = True
 number_of_particles = 2000
-particles_speed = 0
+particles_speed = 15
 particles_radius = 2
 
 images = []
 points = []
 particles = []
-WIDTH, HEIGHT = 500, 500  # Definindo o tamanho padrão da janela
+WIDTH, HEIGHT = 500, 500
 
 cap = None
 face_mesh = None
@@ -29,7 +27,7 @@ face_detected = False
 
 # Variáveis para controlar o tempo de criação de partículas
 particle_timer = 0
-particle_interval = 1  # Intervalo de 1 segundo para a criação de partículas (em milissegundos)
+particle_interval = 1  # Intervalo para a criação de partículas (em milissegundos)
 
 def generate_images():
     path = "output_images_resized"
@@ -77,8 +75,7 @@ def process_face_detection(screen):
     
     if results.multi_face_landmarks:
         face_detected = True
-        if particles_speed == 0:
-            set_particles_speed(5)
+        set_particles_speed(particles_speed)
 
 def draw_particles():
     for particle in particles:
@@ -100,7 +97,7 @@ def create_particle():
                 
             angle = random.uniform(0, 2 * math.pi)  
             dir = Vector2(math.cos(angle), math.sin(angle))
-            speed = particles_speed
+            speed = particles_speed if face_detected else 0
             radius = particles_radius
             if use_image:
                 add_particle(pos, dir, speed, radius, images[len(particles)], use_image=True)
@@ -130,7 +127,7 @@ def main():
 
         screen.blit(bg, (0, 0))
 
-        if use_face_detection and not face_detected:
+        if not face_detected:
             process_face_detection(screen)
 
         create_particle()
@@ -140,18 +137,16 @@ def main():
         pygame.display.update()
 
     pygame.quit()
-    if use_face_detection:
-        cap.release()
+    cap.release()
     exit()
 
 def config_camera():
     global cap, face_mesh
-    if use_face_detection:
-        cap = cv2.VideoCapture(0)
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, WIDTH)
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, HEIGHT)
-        mp_face_mesh = mp.solutions.face_mesh
-        face_mesh = mp_face_mesh.FaceMesh(static_image_mode=False, max_num_faces=1, min_detection_confidence=0.5)
+    cap = cv2.VideoCapture(0)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, WIDTH)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, HEIGHT)
+    mp_face_mesh = mp.solutions.face_mesh
+    face_mesh = mp_face_mesh.FaceMesh(static_image_mode=False, max_num_faces=1, min_detection_confidence=0.5)
 
 if __name__ == "__main__":
 
