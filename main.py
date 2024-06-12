@@ -6,15 +6,17 @@ import os
 from double_slit import *
 import cv2
 import mediapipe as mp
+import math
+from pygame.math import Vector2
 
-use_image = True 
+use_image = True  
 use_face_detection = True
 use_double_slit = True
 use_face_interpolation = False
 use_collision = True
 number_of_particles = 2000
 particles_speed = 0
-particles_radius = 5
+particles_radius = 2
 
 images = []
 points = []
@@ -78,17 +80,41 @@ def process_face_detection(screen):
         if particles_speed == 0:
             set_particles_speed(5)
 
+def draw_particles():
+    for particle in particles:
+        particle.draw(screen)
+        if face_detected:
+            particle.guidance([0, WIDTH, 0, HEIGHT], particles, use_collision)
+            particle.update_pos()
+
+def create_particle():
+    global particle_timer, particle_interval
+    current_time = pygame.time.get_ticks()
+    if current_time - particle_timer > particle_interval:
+        particle_timer = current_time
+        if len(particles) < number_of_particles:
+            if use_double_slit:
+                pos = points[len(particles)]
+            else:
+                pos = (random.randint(0, WIDTH), random.randint(0, HEIGHT))
+                
+            angle = random.uniform(0, 2 * math.pi)  
+            dir = Vector2(math.cos(angle), math.sin(angle))
+            speed = particles_speed
+            radius = particles_radius
+            if use_image:
+                add_particle(pos, dir, speed, radius, images[len(particles)], use_image=True)
+            else:
+                add_particle(pos, dir, speed, radius, (255, 255, 255), use_image=False)
+
 def main():
     global number_of_particles
     global particles
     global cap
-    global particle_timer
     global face_detected
 
     bg = pygame.Surface((WIDTH, HEIGHT))
     bg.fill((20, 20, 20))
-
-    directions = [-1, 1]
  
     if use_image:
         number_of_particles = len(images)
@@ -107,29 +133,8 @@ def main():
         if use_face_detection and not face_detected:
             process_face_detection(screen)
 
-
-        current_time = pygame.time.get_ticks()
-        if current_time - particle_timer > particle_interval:
-            particle_timer = current_time
-            if len(particles) < number_of_particles:
-                if use_double_slit:
-                    pos = points[len(particles)]
-                else:
-                    pos = (random.randint(0, WIDTH), random.randint(0, HEIGHT))
-                    
-                dir = random.choice(directions)
-                speed = particles_speed
-                radius = particles_radius
-                if use_image:
-                    add_particle(pos, dir, speed, radius, images[len(particles)], use_image=True)
-                else:
-                    add_particle(pos, dir, speed, radius, (79, 187, 224), use_image=False)
-
-        for particle in particles:
-            particle.draw(screen)
-            if face_detected:
-                particle.guidance([0, WIDTH, 0, HEIGHT], particles, use_collision)
-                particle.update_pos()
+        create_particle()
+        draw_particles()
 
         clock.tick(30)
         pygame.display.update()
