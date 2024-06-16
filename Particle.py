@@ -1,4 +1,3 @@
-from functions_geometric import euclidean_distance
 import pygame
 from pygame.math import Vector2
 
@@ -62,7 +61,7 @@ class Particle:
         # self.pos = Vector2(-1000, -1000)
 
     def is_collided(self, particle):
-        return self.alive and particle.alive and euclidean_distance(self.pos, particle.pos) <= self.radius + particle.radius
+        return self.alive and particle.alive and self.euclidean_distance(self.pos, particle.pos) <= self.radius + particle.radius
 
     def update_pos(self):
         if self.alive:
@@ -70,3 +69,9 @@ class Particle:
     
     def change_pos(self, x, y):
         self.pos = Vector2(x, y)
+
+    def euclidean_distance(self, point_1, point_2):
+        s = 0.0
+        for i in range(len(point_1)):
+            s += ((point_1[i] - point_2[i]) ** 2)
+        return s ** 0.5
