@@ -9,7 +9,7 @@ class Particle:
         self.speed = speed
         self.radius = radius
         self.use_image = use_image
-        self.alive = True  # Adicionando o atributo alive para determinar se a partícula está viva
+        self.alive = True  
         if use_image:
             self.image = pygame.transform.scale(color_or_image, (2 * radius, 2 * radius))
         else:
@@ -17,14 +17,14 @@ class Particle:
         self.collision_status = False
         
     def draw(self, screen):
-        if self.alive:  # Verificando se a partícula está viva antes de desenhá-la
+        if self.alive:
             if self.use_image:
                 screen.blit(self.image, (self.pos[0] - self.radius, self.pos[1] - self.radius))
             else:
                 pygame.draw.circle(screen, self.color, (int(self.pos[0]), int(self.pos[1])), self.radius)
 
     def check_collision(self, use_collision, particles):
-        if self.alive:  # Verificando se a partícula está viva antes de verificar colisão
+        if self.alive: 
             if use_collision:
                 for particle in particles:
                     if particle.pos != self.pos and self.is_collided(particle):
@@ -32,12 +32,12 @@ class Particle:
                         break
     
     def guidance(self, box, particles, use_collision):
-        if self.alive:  # Verificando se a partícula está viva antes de realizar a orientação
+        if self.alive: 
             self.boundary_update_dir(box)
             self.check_collision(use_collision, particles)
 
     def boundary_update_dir(self, box):
-        if self.alive:  # Verificando se a partícula está viva antes de atualizar sua direção
+        if self.alive:  
             if self.pos.x <= box[0] + self.radius and self.dir.x < 0:
                 self.dir.x *= -1
             elif self.pos.x >= box[1] - self.radius and self.dir.x > 0:
@@ -48,7 +48,7 @@ class Particle:
                 self.dir.y *= -1
 
     def handle_collision(self, particle):
-        if self.alive:  # Verificando se a partícula está viva antes de manipular a colisão
+        if self.alive: 
             # self.increase_size()
             particle.remove_particle()
     
@@ -58,14 +58,14 @@ class Particle:
             self.image = pygame.transform.scale(self.image, (2 * self.radius, 2 * self.radius))
 
     def remove_particle(self):
-        self.alive = False  # Definindo a partícula como morta
+        self.alive = False
         # self.pos = Vector2(-1000, -1000)
 
     def is_collided(self, particle):
         return self.alive and particle.alive and euclidean_distance(self.pos, particle.pos) <= self.radius + particle.radius
 
     def update_pos(self):
-        if self.alive:  # Verificando se a partícula está viva antes de atualizar sua posição
+        if self.alive:
             self.pos += self.dir * self.speed
     
     def change_pos(self, x, y):
