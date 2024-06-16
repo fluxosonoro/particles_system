@@ -8,26 +8,27 @@ import cv2
 import mediapipe as mp
 import math
 from pygame.math import Vector2
+from particles_manager import *
 
+# Flags that can be changed
 use_image = True  
-use_collision = False
+use_collision = True
 use_double_slit = True
 number_of_particles = 2000
-particles_speed = 15
+particles_speed = 2
 particles_radius = 2
 
+# Control variables. Do not change
 images = []
 points = []
 particles = []
 WIDTH, HEIGHT = 500, 500
-
 cap = None
 face_mesh = None
 face_detected = False
-
-# Variáveis para controlar o tempo de criação de partículas
 particle_timer = 0
-particle_interval = 1  # Intervalo para a criação de partículas (em milissegundos)
+particle_interval = 1 
+particles_manager = ParticlesManager(WIDTH, HEIGHT, 10)
 
 def generate_images():
     path = "output_images_resized"
@@ -80,9 +81,10 @@ def process_face_detection(screen):
 def draw_particles():
     for particle in particles:
         particle.draw(screen)
-        if face_detected:
-            particle.guidance([0, WIDTH, 0, HEIGHT], particles, use_collision)
-            particle.update_pos()
+        particle.update_pos()
+        particles_manager.add_particle_to_grid(particle)
+        i,j = particles_manager.get_particle_position_on_grid(particle)
+        particle.guidance([0, WIDTH, 0, HEIGHT], particles_manager.grid[i][j], use_collision)
 
 def create_particle():
     global particle_timer, particle_interval
@@ -130,6 +132,7 @@ def main():
         if not face_detected:
             process_face_detection(screen)
 
+        particles_manager.clear_grid()
         create_particle()
         draw_particles()
 
@@ -154,7 +157,7 @@ if __name__ == "__main__":
 
     pygame.init()
 
-    screen = pygame.display.set_mode((0,0), pygame.FULLSCREEN)
+    screen = pygame.display.set_mode((1000,1000))
     WIDTH, HEIGHT = pygame.display.get_surface().get_size()
     pygame.display.set_caption("Particle Simulation")
     clock = pygame.time.Clock()
