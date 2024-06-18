@@ -6,8 +6,8 @@ class ParticlesManager:
         self.screen_width = screen_width
         self.screen_height = screen_height
         self.grid_size = grid_size
-        self.rows_size = screen_height//grid_size 
-        self.columns_size = screen_width//grid_size 
+        self.rows_size = screen_width//grid_size 
+        self.columns_size = screen_height//grid_size 
         self.grid = []
 
     def clear_grid(self):
