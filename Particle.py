@@ -1,15 +1,20 @@
 from pygame.math import Vector2
 from explosion import *
+import math
 
 class Particle:
     def __init__(self, position, direction, speed, radius, color_or_image, use_image=False):
         self.pos = Vector2(position)
+        self.original_pos = Vector2(position)
         self.dir = Vector2(direction).normalize()
         self.speed = speed
         self.radius = radius
         self.use_image = use_image
         self.explosion = None
         self.alive = True
+        self.angle = 0  # Ângulo para movimento de onda
+        self.r = 50  # Raio da onda
+        self.wave_speed = 0.05  # Velocidade do movimento da onda
         if use_image:
             self.image = pygame.transform.scale(color_or_image, (2 * radius, 2 * radius))
         else:
@@ -70,6 +75,10 @@ class Particle:
     def update_pos(self):
         if self.alive:
             self.pos += self.dir * self.speed
+    
+    def update_wave_movement(self):
+        self.angle += self.wave_speed  # Incrementa o ângulo para criar o movimento de onda
+        self.pos.x = self.original_pos.x + self.r * math.sin(self.angle)  # Atualiza a posição x com base na função seno
     
     def change_pos(self, x, y):
         self.pos = Vector2(x, y)

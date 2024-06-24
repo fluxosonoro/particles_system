@@ -14,9 +14,8 @@ from explosion import *
 # Flags that can be changed
 use_image = True  
 use_collision = True
-use_double_slit = True
 number_of_particles = 2000
-particles_speed = 2
+particles_speed = 5
 particles_radius = 2
 
 # Control variables. Do not change
@@ -30,6 +29,7 @@ face_detected = False
 particle_timer = 0
 particle_interval = 1 
 particles_manager = None
+wave_movement = False
 
 def generate_images():
     path = "output_images_resized"
@@ -80,9 +80,14 @@ def process_face_detection(screen):
         set_particles_speed(particles_speed)
 
 def draw_particles(dt):
+    particles_manager.clear_grid()
     for particle in particles:
         particle.draw(screen, dt)
         particles_manager.add_particle_to_grid(particle)
+        if wave_movement:
+            particle.update_wave_movement()
+        else:
+            particle.update_pos()
         i,j = particles_manager.get_particle_position_on_grid(particle)
         particle.guidance([0, WIDTH, 0, HEIGHT], particles_manager.grid[i][j], use_collision if face_detected else False)
 
@@ -93,11 +98,7 @@ def create_particle():
     if current_time - particle_timer > particle_interval:
         particle_timer = current_time
         if len(particles) < number_of_particles:
-            if use_double_slit:
-                pos = points[len(particles)]
-            else:
-                pos = (random.randint(0, WIDTH), random.randint(0, HEIGHT))
-                
+            pos = points[len(particles)]
             angle = random.uniform(0, 2 * math.pi)  
             dir = Vector2(math.cos(angle), math.sin(angle))
             speed = particles_speed if face_detected else 0
@@ -107,11 +108,14 @@ def create_particle():
             else:
                 add_particle(pos, dir, speed, radius, (255, 255, 255), use_image=False)
 
+#### dt = clock.tick(60) / 1000  # Tempo decorrido no quadro atual em segundos <- USAR!
+
 def main():
     global number_of_particles
     global particles
     global cap
     global face_detected
+    global wave_movement
 
     bg = pygame.Surface((WIDTH, HEIGHT))
     bg.fill((0, 0, 0))
@@ -136,13 +140,14 @@ def main():
         if not face_detected:
             process_face_detection(screen)
 
-        particles_manager.clear_grid()
         # explosion.draw(screen)
         # explosion.update(dt)
 
         # particles_manager.draw_partitions(screen)
         create_particle()
 
+        # wave_movement = True if len(particles) >= number_of_particles else False
+        wave_movement = True
 
         draw_particles(dt)
 

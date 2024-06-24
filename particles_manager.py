@@ -9,6 +9,8 @@ class ParticlesManager:
         self.rows_size = screen_width//grid_size 
         self.columns_size = screen_height//grid_size 
         self.grid = []
+        self.r = self.grid_size // 2
+        self.loc = 100
 
     def clear_grid(self):
         self.grid = [[[] for _ in range(self.columns_size)] for _ in range(self.rows_size)]
@@ -17,7 +19,7 @@ class ParticlesManager:
         i, j = self.get_particle_position_on_grid(particle)
         if 0 <= i < self.rows_size and 0 <= j < self.columns_size:
             self.grid[i][j].append(particle)
-
+    
     def get_particle_position_on_grid(self, particle):
         x = particle.pos.x
         y = particle.pos.y
