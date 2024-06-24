@@ -1,5 +1,5 @@
-import pygame
 from pygame.math import Vector2
+from explosion import *
 
 class Particle:
     def __init__(self, position, direction, speed, radius, color_or_image, use_image=False):
@@ -8,14 +8,19 @@ class Particle:
         self.speed = speed
         self.radius = radius
         self.use_image = use_image
-        self.alive = True  
+        self.explosion = None
+        self.alive = True
         if use_image:
             self.image = pygame.transform.scale(color_or_image, (2 * radius, 2 * radius))
         else:
             self.color = color_or_image
         self.collision_status = False
-        
-    def draw(self, screen):
+
+    def draw(self, screen, dt):
+        if self.explosion:
+            self.explosion.draw(screen)
+            self.explosion.update(dt)
+
         if self.alive:
             if self.use_image:
                 screen.blit(self.image, (self.pos[0] - self.radius, self.pos[1] - self.radius))
@@ -28,6 +33,7 @@ class Particle:
                 for particle in particles:
                     if particle.pos != self.pos and self.is_collided(particle):
                         self.handle_collision(particle)
+                        self.explosion = Explosion(self.pos)
                         break
     
     def guidance(self, box, particles, use_collision):
@@ -47,8 +53,7 @@ class Particle:
                 self.dir.y *= -1
 
     def handle_collision(self, particle):
-        if self.alive: 
-            # self.increase_size()
+        if self.alive:
             particle.remove_particle()
     
     def increase_size(self):
@@ -58,7 +63,6 @@ class Particle:
 
     def remove_particle(self):
         self.alive = False
-        # self.pos = Vector2(-1000, -1000)
 
     def is_collided(self, particle):
         return self.alive and particle.alive and self.euclidean_distance(self.pos, particle.pos) <= self.radius + particle.radius

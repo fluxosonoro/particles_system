@@ -9,6 +9,7 @@ import mediapipe as mp
 import math
 from pygame.math import Vector2
 from particles_manager import *
+from explosion import *
 
 # Flags that can be changed
 use_image = True  
@@ -22,13 +23,13 @@ particles_radius = 2
 images = []
 points = []
 particles = []
-WIDTH, HEIGHT = 500, 500
+WIDTH, HEIGHT = 0,0 
 cap = None
 face_mesh = None
 face_detected = False
 particle_timer = 0
 particle_interval = 1 
-particles_manager = ParticlesManager(WIDTH, HEIGHT, 10)
+particles_manager = None
 
 def generate_images():
     path = "output_images_resized"
@@ -78,13 +79,13 @@ def process_face_detection(screen):
         face_detected = True
         set_particles_speed(particles_speed)
 
-def draw_particles():
+def draw_particles(dt):
     for particle in particles:
-        particle.draw(screen)
-        particle.update_pos()
+        particle.draw(screen, dt)
         particles_manager.add_particle_to_grid(particle)
         i,j = particles_manager.get_particle_position_on_grid(particle)
-        particle.guidance([0, WIDTH, 0, HEIGHT], particles_manager.grid[i][j], use_collision)
+        particle.guidance([0, WIDTH, 0, HEIGHT], particles_manager.grid[i][j], use_collision if face_detected else False)
+
 
 def create_particle():
     global particle_timer, particle_interval
@@ -113,13 +114,16 @@ def main():
     global face_detected
 
     bg = pygame.Surface((WIDTH, HEIGHT))
-    bg.fill((20, 20, 20))
+    bg.fill((0, 0, 0))
  
     if use_image:
         number_of_particles = len(images)
+
+    explosion = Explosion((WIDTH//2, HEIGHT//2))
     
     running = True
     while running:
+        dt = clock.tick(60) / 1000
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
@@ -133,10 +137,16 @@ def main():
             process_face_detection(screen)
 
         particles_manager.clear_grid()
-        create_particle()
-        draw_particles()
+        # explosion.draw(screen)
+        # explosion.update(dt)
 
-        clock.tick(30)
+        # particles_manager.draw_partitions(screen)
+        create_particle()
+
+
+        draw_particles(dt)
+
+        # clock.tick(30)
         pygame.display.update()
 
     pygame.quit()
@@ -157,8 +167,10 @@ if __name__ == "__main__":
 
     pygame.init()
 
-    screen = pygame.display.set_mode((1000,1000))
+    screen = pygame.display.set_mode((0,0), pygame.FULLSCREEN)
     WIDTH, HEIGHT = pygame.display.get_surface().get_size()
+
+    particles_manager = ParticlesManager(WIDTH, HEIGHT, 15)
     pygame.display.set_caption("Particle Simulation")
     clock = pygame.time.Clock()
 

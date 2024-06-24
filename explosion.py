@@ -66,8 +66,6 @@ class Explosion:
                 lightning.speed = max(1, lightning.speed)  
                 particle.speed -= self.deceleration 
                 particle.speed = max(1, particle.speed) 
-
-                print(particle.speed)
                 
                 lightning.pos += lightning.dir * lightning.speed 
                 particle.pos += particle.dir * particle.speed 
