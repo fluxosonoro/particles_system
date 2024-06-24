@@ -15,7 +15,7 @@ from explosion import *
 use_image = True  
 use_collision = True
 number_of_particles = 2000
-particles_speed = 5
+particles_speed = 2
 particles_radius = 2
 
 # Control variables. Do not change
@@ -147,7 +147,7 @@ def main():
         create_particle()
 
         # wave_movement = True if len(particles) >= number_of_particles else False
-        wave_movement = True
+        wave_movement = True if not face_detected else False
 
         draw_particles(dt)
 
