@@ -8,26 +8,36 @@ import cv2
 import mediapipe as mp
 import math
 from pygame.math import Vector2
+from particles_manager import *
+from explosion import *
 
+# Flags that can be changed
 use_image = True  
-use_collision = False
-use_double_slit = True
-number_of_particles = 2000
-particles_speed = 15
+use_collision = True
+number_of_particles = 4000
+particles_speed = 2
 particles_radius = 2
 
+# Wave parameters
+A = 10  # Wave amplitude
+T = 1000  # Wave period (time for one complete cycle in milliseconds)
+wavelength = 100 
+time = 0
+wave_movement_velocity = 0.2
+
+# Control variables. Do not change
 images = []
 points = []
 particles = []
-WIDTH, HEIGHT = 500, 500
-
+box = []
+WIDTH, HEIGHT = 0,0 
 cap = None
 face_mesh = None
 face_detected = False
-
-# Variáveis para controlar o tempo de criação de partículas
 particle_timer = 0
-particle_interval = 1  # Intervalo para a criação de partículas (em milissegundos)
+particle_interval = 1 
+particles_manager = None
+wave_movement = False
 
 def generate_images():
     path = "output_images_resized"
@@ -35,6 +45,7 @@ def generate_images():
     for f in os.listdir(path):
         ext = os.path.splitext(f)[1]
         if ext.lower() in valid_images:
+            images.append(pygame.image.load(os.path.join(path, f)))
             images.append(pygame.image.load(os.path.join(path, f)))
 
 def generate_points():
@@ -62,10 +73,8 @@ def add_particle(position, direction, speed, radius, color_or_image, use_image):
     particles.append(Particle(position, direction, speed, radius, color_or_image, use_image))
 
 def set_particles_speed(speed):
-    global particles_speed
-    particles_speed = speed
     for particle in particles:
-        particle.speed = particles_speed
+        particle.speed = speed
 
 def process_face_detection(screen):
     global cap, face_mesh, face_detected
@@ -76,48 +85,60 @@ def process_face_detection(screen):
     if results.multi_face_landmarks:
         face_detected = True
         set_particles_speed(particles_speed)
+    else:
+        face_detected = False
+        set_particles_speed(0)
 
-def draw_particles():
+def draw_particles(dt):
+    global time
+    particles_manager.clear_grid()
     for particle in particles:
-        particle.draw(screen)
-        if face_detected:
-            particle.guidance([0, WIDTH, 0, HEIGHT], particles, use_collision)
+        if wave_movement:
+            update_wave_movement(time, particle)
+        else:
             particle.update_pos()
+        particle.draw(screen, dt)
+        particles_manager.add_particle_to_grid(particle)
+        i, j = particles_manager.get_particle_position_on_grid(particle)
+        particle.guidance(box, particles_manager.grid[i][j], use_collision if face_detected else False)
+    
+    time += clock.get_time()
+
+def update_wave_movement(t, particle):
+    x = particle.original_pos.x
+    deslocamento = A * math.sin((2 * math.pi / T) * t - (2 * math.pi / wavelength) * x)
+    particle.pos.x += deslocamento * wave_movement_velocity
+
+def create_particles():
+    for _ in range(number_of_particles):
+        create_particle()
 
 def create_particle():
-    global particle_timer, particle_interval
-    current_time = pygame.time.get_ticks()
-    if current_time - particle_timer > particle_interval:
-        particle_timer = current_time
-        if len(particles) < number_of_particles:
-            if use_double_slit:
-                pos = points[len(particles)]
-            else:
-                pos = (random.randint(0, WIDTH), random.randint(0, HEIGHT))
-                
-            angle = random.uniform(0, 2 * math.pi)  
-            dir = Vector2(math.cos(angle), math.sin(angle))
-            speed = particles_speed if face_detected else 0
-            radius = particles_radius
-            if use_image:
-                add_particle(pos, dir, speed, radius, images[len(particles)], use_image=True)
-            else:
-                add_particle(pos, dir, speed, radius, (255, 255, 255), use_image=False)
+    if len(particles) < number_of_particles:
+        pos = points[len(particles)]
+        angle = random.uniform(0, 2 * math.pi)  
+        dir = Vector2(math.cos(angle), math.sin(angle)).normalize()
+        speed = particles_speed if face_detected else 0
+        radius = particles_radius
+        if use_image:
+            add_particle(pos, dir, speed, radius, images[len(particles)], use_image=True)
+        else:
+            add_particle(pos, dir, speed, radius, (255, 255, 255), use_image=False)
 
 def main():
-    global number_of_particles
-    global particles
-    global cap
-    global face_detected
+    global number_of_particles, particles, cap, face_detected, wave_movement, time
 
     bg = pygame.Surface((WIDTH, HEIGHT))
-    bg.fill((20, 20, 20))
+    bg.fill((0, 0, 0))
  
     if use_image:
         number_of_particles = len(images)
+
+    # create_particles()
     
     running = True
     while running:
+        dt = clock.tick(60) / 1000
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
@@ -127,13 +148,17 @@ def main():
 
         screen.blit(bg, (0, 0))
 
-        if not face_detected:
-            process_face_detection(screen)
+        process_face_detection(screen)
 
-        create_particle()
-        draw_particles()
+        if len(particles) < number_of_particles:
+            create_particle()
+            create_particle()
+            create_particle()
+        else:
+            wave_movement = not face_detected
 
-        clock.tick(30)
+        draw_particles(dt)
+
         pygame.display.update()
 
     pygame.quit()
@@ -154,8 +179,13 @@ if __name__ == "__main__":
 
     pygame.init()
 
+    # screen = pygame.display.set_mode((2560,1080))
     screen = pygame.display.set_mode((0,0), pygame.FULLSCREEN)
     WIDTH, HEIGHT = pygame.display.get_surface().get_size()
+
+    box = [0, WIDTH, 0, HEIGHT]
+
+    particles_manager = ParticlesManager(WIDTH, HEIGHT, 15)
     pygame.display.set_caption("Particle Simulation")
     clock = pygame.time.Clock()
 
