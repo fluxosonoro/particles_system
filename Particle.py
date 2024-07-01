@@ -6,7 +6,7 @@ class Particle:
     def __init__(self, position, direction, speed, radius, color_or_image, use_image=False):
         self.pos = Vector2(position)
         self.original_pos = Vector2(position)
-        self.dir = Vector2(direction).normalize()
+        self.dir = direction
         self.speed = speed
         self.radius = radius
         self.use_image = use_image
@@ -37,8 +37,8 @@ class Particle:
             if use_collision:
                 for particle in particles:
                     if particle.pos != self.pos and self.is_collided(particle):
-                        self.handle_collision(particle)
-                        self.explosion = Explosion(self.pos)
+                        # self.handle_collision(particle)
+                        # self.explosion = Explosion(self.pos)
                         break
     
     def guidance(self, box, particles, use_collision):
@@ -57,9 +57,9 @@ class Particle:
             elif self.pos.y >= box[3] - self.radius and self.dir.y > 0:
                 self.dir.y *= -1
 
-    def handle_collision(self, particle):
-        if self.alive:
-            particle.remove_particle()
+    # def handle_collision(self, particle):
+    #     if self.alive:
+    #         particle.remove_particle()
     
     def increase_size(self):
         self.radius += 5
@@ -74,11 +74,15 @@ class Particle:
 
     def update_pos(self):
         if self.alive:
+            angle = random.uniform(0, 2 * math.pi)
+            self.dir = Vector2(math.cos(angle), math.sin(angle))
             self.pos += self.dir * self.speed
     
-    def update_wave_movement(self):
-        self.angle += self.wave_speed  # Incrementa o ângulo para criar o movimento de onda
-        self.pos.x = self.original_pos.x + self.r * math.sin(self.angle)  # Atualiza a posição x com base na função seno
+    def update_pos_dla(self):
+        if self.alive:
+            self.dir = Vector2(random.randint(-1,1), random.randint(-1,1))
+            self.pos = self.pos + self.dir
+            return self.dir
     
     def change_pos(self, x, y):
         self.pos = Vector2(x, y)
