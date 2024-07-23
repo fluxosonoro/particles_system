@@ -10,10 +10,10 @@ import math
 from pygame.math import Vector2
 
 use_image = True  
-use_collision = False
+use_collision = True
 use_double_slit = True
 number_of_particles = 2000
-particles_speed = 15
+particles_speed = 15 # collision speed
 particles_radius = 2
 
 images = []
