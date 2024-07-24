@@ -24,21 +24,11 @@ You can customize the behavior of the particle system by modifying the variables
 
   - True: Particles will be represented by images.
   - False: Particles will be represented by circles.
-
-- `use_camera`: Defines whether the camera will be activated.
-
-  - True: Uses the camera to interact with the particles.
-  - False: Does not use the camera.
     
 - `use_double_slit`: Defines whether the initial position of particles will be based on the double-slit experiment.
 
   - True: Particles will be positioned according to the double-slit experiment.
   - False: Particles will be positioned randomly.
-
-- `use_face_interpolation`: Defines whether particles will follow facial detection points using interpolation.
-
-  - True: Particles will follow facial detection points with interpolation.
-  - False: Particles will not follow facial detection points.
 
 - `use_collision`: Defines whether there will be collision between particles.
 
