@@ -10,7 +10,6 @@ import math
 from pygame.math import Vector2
 from particles_manager import *
 from explosion import *
-from bt1 import *
 from PIL import Image
 
 # Flags that can be changed
