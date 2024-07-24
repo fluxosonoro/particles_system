@@ -3,15 +3,15 @@ from explosion import *
 import math
 
 class Particle:
-    def __init__(self, position, direction, speed, radius, color_or_image, use_image=False):
+    def __init__(self, position, direction, speed, radius, color_or_image, use_image=False, collidable=True):
         self.pos = Vector2(position)
         self.original_pos = Vector2(position)
         self.dir = direction
         self.speed = speed
         self.radius = radius
         self.use_image = use_image
-        self.explosion = None
         self.alive = True
+        self.collidable = collidable
         self.angle = 0  # Ângulo para movimento de onda
         self.r = 50  # Raio da onda
         self.wave_speed = 0.05  # Velocidade do movimento da onda
@@ -20,31 +20,28 @@ class Particle:
         else:
             self.color = color_or_image
         self.collision_status = False
+        self.collisions_count = 0
 
-    def draw(self, screen, dt):
-        if self.explosion:
-            self.explosion.draw(screen)
-            self.explosion.update(dt)
-
+    def draw(self, screen, ):
         if self.alive:
             if self.use_image:
-                screen.blit(self.image, (self.pos[0] - self.radius, self.pos[1] - self.radius))
+                screen.blit(self.image, (self.pos.x - self.radius, self.pos.y - self.radius))
             else:
-                pygame.draw.circle(screen, self.color, (int(self.pos[0]), int(self.pos[1])), self.radius)
+                pygame.draw.circle(screen, self.color, (self.pos.x, self.pos.y), self.radius)
 
     def check_collision(self, use_collision, particles):
-        if self.alive: 
+        if self.alive and self.collidable: 
             if use_collision:
                 for particle in particles:
-                    if particle.pos != self.pos and self.is_collided(particle):
-                        # self.handle_collision(particle)
-                        # self.explosion = Explosion(self.pos)
-                        break
+                    if particle.collidable and particle.pos != self.pos and self.is_collided(particle):
+                       self.collisions_count += 1
+                       return Particle(self.pos, self.dir, 1, 1, (255,255,0), False, False)
     
     def guidance(self, box, particles, use_collision):
         if self.alive: 
             self.boundary_update_dir(box)
-            self.check_collision(use_collision, particles)
+            if self.collidable:
+                return self.check_collision(use_collision, particles)
 
     def boundary_update_dir(self, box):
         if self.alive:  
