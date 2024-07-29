@@ -11,6 +11,9 @@ from pygame.math import Vector2
 from particles_manager import *
 from explosion import *
 from PIL import Image
+from osc_client import *
+
+osc_client = OscClient("127.0.0.1", 7400)
 
 # Flags that can be changed
 use_image = True  
@@ -46,7 +49,6 @@ num_particles_gerenated = 0
 index_next_to_alive = 0
 last_activation_time = 0  # Timer para controlar a ativação das partículas
 move_particle_status = False
-
 
 class ImageTest:
     def __init__(self, path, width, height):
@@ -159,6 +161,8 @@ def draw_particles():
         i, j = particles_manager.get_particle_position_on_grid(particle)
         result = particle.guidance(box, particles_manager.grid[i][j], use_collision if face_detected else False)
         if result != None and not move_particle_status:
+            osc_client.send_message("bands", random.randrange(0, 1024))
+            osc_client.send_message("peak_width", random.randrange(0, 1024))
             to_alive_created_particle(result)
             x = random.uniform(result.pos.x - 20.0, result.pos.x + 20.0)
             y = random.uniform(result.pos.y - 20.0, result.pos.y + 20.0)
@@ -303,7 +307,6 @@ if __name__ == "__main__":
     image_test_8 = ImageTest("final_images/image8.jpg", WIDTH-1500, HEIGHT-300) #ESTATUA AFRICANA
     image_test_9 = ImageTest("final_images/image20.jpg", WIDTH-200, HEIGHT)
     image_test_10 = ImageTest("final_images/image25.jpeg", WIDTH-500, HEIGHT-500)
-
 
     create_final_image(image_test_8)
     half = len(particles_gerenated)//15
