@@ -12,6 +12,11 @@ from particles_manager import *
 from explosion import *
 from PIL import Image
 from osc_client import *
+from floating_letters import *
+from phrases import *
+
+#Text Animation
+text_animation = None
 
 osc_client = OscClient("127.0.0.1", 7400)
 
@@ -141,6 +146,7 @@ def draw_particles():
 
     if move_particle_status:
         move_particles()
+        text_animation.draw_and_update(screen)
         return
     
     particles_manager.clear_grid()
@@ -259,13 +265,6 @@ def main():
             create_particle()
             create_particle()
             create_particle()
-            #remover
-            create_particle()
-            create_particle()
-            create_particle()
-            create_particle()
-            create_particle()
-            create_particle()
         else:
             wave_movement = not face_detected
 
@@ -285,6 +284,10 @@ def config_camera():
     mp_face_mesh = mp.solutions.face_mesh
     face_mesh = mp_face_mesh.FaceMesh(static_image_mode=False, max_num_faces=1, min_detection_confidence=0.5)
 
+def config_text_animation(screen_width, screen_height, text_pos):
+    global text_animation
+    text_animation = TextAnimation(phrases[random.randint(0, len(phrases)-1)], screen_width, screen_height, text_pos)
+
 if __name__ == "__main__":
 
     generate_images()
@@ -297,19 +300,25 @@ if __name__ == "__main__":
 
     box = [0, WIDTH, 0, HEIGHT]
 
-    image_test_1 = ImageTest("final_images/image19.jpg", WIDTH//2, HEIGHT//2)
+    image_test_1 = ImageTest("final_images/image19.jpg", WIDTH // 2, HEIGHT // 2)
     image_test_2 = ImageTest("final_images/image23.jpg", WIDTH, HEIGHT)
     image_test_3 = ImageTest("final_images/image17.jpg", WIDTH, HEIGHT)
-    image_test_4 = ImageTest("final_images/image12.jpg", WIDTH-800, HEIGHT-200)
-    image_test_5 = ImageTest("final_images/image24.jpg", WIDTH-200, HEIGHT)
-    image_test_6 = ImageTest("final_images/image21.jpg", WIDTH-500, HEIGHT-500) #COGUMELOS
-    image_test_7 = ImageTest("final_images/image7.png", WIDTH-600, HEIGHT-100)
-    image_test_8 = ImageTest("final_images/image8.jpg", WIDTH-1500, HEIGHT-300) #ESTATUA AFRICANA
-    image_test_9 = ImageTest("final_images/image20.jpg", WIDTH-200, HEIGHT)
-    image_test_10 = ImageTest("final_images/image25.jpeg", WIDTH-500, HEIGHT-500)
+    image_test_4 = ImageTest("final_images/image12.jpg", WIDTH - WIDTH // 3, HEIGHT - HEIGHT // 5)
+    image_test_5 = ImageTest("final_images/image24.jpg", WIDTH - WIDTH // 12, HEIGHT)
+    image_test_6 = ImageTest("final_images/image21.jpg", WIDTH - WIDTH // 4, HEIGHT - HEIGHT // 2)  # COGUMELOS
+    image_test_7 = ImageTest("final_images/image7.png", WIDTH - WIDTH // 4, HEIGHT - HEIGHT // 10)
+    image_test_8 = ImageTest("final_images/image8.jpg", WIDTH - WIDTH // 2, HEIGHT - HEIGHT // 3)  # ESTÁTUA AFRICANA
+    image_test_9 = ImageTest("final_images/image20.jpg", WIDTH - WIDTH // 12, HEIGHT)
+    image_test_10 = ImageTest("final_images/image25.jpeg", WIDTH - WIDTH // 5, HEIGHT - HEIGHT // 2)
 
-    create_final_image(image_test_8)
+    image_test = image_test_8
+
+    create_final_image(image_test)
     half = len(particles_gerenated)//15
+
+    # config_text_animation(WIDTH, HEIGHT, (WIDTH//2, HEIGHT//2 + HEIGHT//3))
+
+    config_text_animation(WIDTH, HEIGHT, (WIDTH//2, (HEIGHT - image_test.height//2)+image_test.height//4))
 
     particles_manager = ParticlesManager(WIDTH, HEIGHT, 15)
     pygame.display.set_caption("Particle Simulation")
