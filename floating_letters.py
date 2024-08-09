@@ -26,16 +26,14 @@ class TextAnimation:
         
         return lines
 
-    # O resto da classe permanece o mesmo
-
-
     def calculate_final_positions(self, lines, start_x, start_y, letter_size, line_height):
         self.positions = []
         y = start_y
         for line in lines:
             x = start_x - (len(line) * letter_size) // 2
             for char in line:
-                self.positions.append((char, (x, y)))
+                if char.strip():  # Verifica se o caractere não é um espaço vazio
+                    self.positions.append((char, (x, y)))
                 x += letter_size
             y += line_height
 
@@ -58,8 +56,10 @@ class TextAnimation:
         lines = self.split_phrase(phrase, max_width, self.letter_size_px)
         self.calculate_final_positions(lines, text_position[0], text_position[1], self.letter_size_px, self.line_height_px)
 
-        self.letters = [GrowingLetter(letter, pos, self.initial_font_size, self.final_font_size, self.growth_duration, self.screen_width, self.screen_height) for letter, pos in self.positions]
-    
+        # Verifica se a posição está vazia e se o caractere é válido antes de criar o GrowingLetter
+        self.letters = [GrowingLetter(letter, pos, self.initial_font_size, self.final_font_size, self.growth_duration, self.screen_width, self.screen_height) 
+                        for letter, pos in self.positions if letter.strip()]
+
     def draw_and_update(self, screen):
         for letter in self.letters:
             letter.update(self.animation_velocity)
@@ -74,7 +74,7 @@ class GrowingLetter:
         self.initial_font_size = initial_font_size
         self.final_font_size = final_font_size
         self.font_size = initial_font_size
-        self.font = pygame.font.SysFont('Arial', self.font_size)
+        self.font = pygame.font.SysFont('arial', self.font_size)
         self.image = self.font.render(self.letter, True, (255, 255, 255))
         self.rect = self.image.get_rect(center=(self.x, self.y))
         self.growth_counter = 0
@@ -83,7 +83,7 @@ class GrowingLetter:
     def update(self, move_factor):
         if self.growth_counter < self.growth_duration:
             self.font_size = self.initial_font_size + (self.final_font_size - self.initial_font_size) * (self.growth_counter / self.growth_duration)
-            self.font = pygame.font.SysFont('Arial', int(self.font_size))
+            self.font = pygame.font.SysFont('arial', int(self.font_size))
             self.image = self.font.render(self.letter, True, (255, 255, 255))
             self.rect = self.image.get_rect(center=(self.x, self.y))
             self.growth_counter += 1
@@ -91,6 +91,7 @@ class GrowingLetter:
         self.x = self.x + (self.final_x - self.x) * move_factor
         self.y = self.y + (self.final_y - self.y) * move_factor
         self.rect = self.image.get_rect(center=(self.x, self.y))
+
 
 # # Inicialização do Pygame e da animação
 # pygame.init()
