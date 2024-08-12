@@ -147,6 +147,19 @@ def create_generated_particles(result):
     to_alive_created_particle(Particle((x,y), result.dir, 1, 1, (0,0,0), False, False))
     to_alive_created_particle(result)
 
+def to_alive_created_particle(result):
+    global particles_gerenated, index_next_to_alive, move_particle_status, use_collision
+    if index_next_to_alive < len(particles_gerenated):
+        particles_gerenated[index_next_to_alive].pos = result.pos
+        particles_gerenated[index_next_to_alive].dir = result.dir
+        particles_gerenated[index_next_to_alive].speed = result.speed
+        particles_gerenated[index_next_to_alive].radius = result.radius
+        particles_gerenated[index_next_to_alive].alive = True
+        index_next_to_alive += 1
+    else:
+        move_particle_status = True
+        use_collision = False
+
 def draw_particles():
     global time, index_next_to_alive, particles_gerenated, move_particle_status, half, use_collision, time_transition_to_final_image_counter, time_transition_to_final_image
 
@@ -181,19 +194,6 @@ def draw_particles():
             x = particle.pos.x
             y = particle.pos.y
             to_alive_created_particle(Particle((x,y), particle.dir, 1, 1, (0,0,0), False, False))
-
-def to_alive_created_particle(result):
-    global particles_gerenated, index_next_to_alive, move_particle_status, use_collision
-    if index_next_to_alive < len(particles_gerenated):
-        particles_gerenated[index_next_to_alive].pos = result.pos
-        particles_gerenated[index_next_to_alive].dir = result.dir
-        particles_gerenated[index_next_to_alive].speed = result.speed
-        particles_gerenated[index_next_to_alive].radius = result.radius
-        particles_gerenated[index_next_to_alive].alive = True
-        index_next_to_alive += 1
-    else:
-        move_particle_status = True
-        use_collision = False
 
 def create_particles():
     for _ in range(number_of_particles):
