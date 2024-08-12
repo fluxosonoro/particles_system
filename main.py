@@ -14,6 +14,7 @@ from PIL import Image
 from osc_client import *
 from floating_letters import *
 from phrases import *
+from wave_movement import *
 
 #Text Animation
 text_animation = None
@@ -26,13 +27,6 @@ use_collision = True
 number_of_particles = 4000
 particles_speed = 2
 particles_radius = 2
-
-# Wave parameters
-A = 10  # Wave amplitude
-T = 1000  # Wave period (time for one complete cycle in milliseconds)
-wavelength = 100 
-time = 0
-wave_movement_velocity = 0.2
 
 # Control variables. Do not change
 images = []
@@ -180,12 +174,6 @@ def draw_particles():
             y = random.uniform(result.pos.y - 80.0, result.pos.y + 80.0)
             to_alive_created_particle(Particle((x,y), result.dir, 1, 1, (0,0,0), False, False))
             to_alive_created_particle(result)
-            # if index_next_to_alive > half:
-            #     for i in range(5):
-            #         # print("half")
-            #         x = random.uniform(result.pos.x - 20.0, result.pos.x + 20.0)
-            #         y = random.uniform(result.pos.y - 20.0, result.pos.y + 20.0)
-            #         to_alive_created_particle(Particle((x,y), result.dir, 1, 1, (0,0,0), False, False))
       
     time += clock.get_time()
     if use_collision and face_detected:
@@ -213,11 +201,6 @@ def to_alive_created_particle(result):
     else:
         move_particle_status = True
         use_collision = False
-
-def update_wave_movement(t, particle):
-    x = particle.original_pos.x
-    deslocamento = A * math.sin((2 * math.pi / T) * t - (2 * math.pi / wavelength) * x)
-    particle.pos.x += deslocamento * wave_movement_velocity
 
 def create_particles():
     for _ in range(number_of_particles):
