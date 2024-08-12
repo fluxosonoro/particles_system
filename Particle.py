@@ -1,6 +1,7 @@
 from pygame.math import Vector2
-from explosion import *
 import math
+import pygame
+import random
 
 class Particle:
     def __init__(self, position, direction, speed, radius, color_or_image, use_image=False, collidable=True):

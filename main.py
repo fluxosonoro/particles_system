@@ -4,17 +4,15 @@ import random
 from sys import exit
 import os
 from double_slit import *
-import cv2
-import mediapipe as mp
 import math
 from pygame.math import Vector2
 from particles_manager import *
-from explosion import *
 from PIL import Image
 from osc_client import *
 from floating_letters import *
 from phrases import *
 from wave_movement import *
+from face_detection import *
 
 #Text Animation
 text_animation = None
@@ -35,8 +33,6 @@ particles = []
 box = []
 WIDTH, HEIGHT = 0,0 
 cap = None
-face_mesh = None
-face_detected = False
 particle_timer = 0
 particle_interval = 1 
 particles_manager = None
@@ -103,11 +99,15 @@ def generate_points():
 
 def transformar_pontos(pontos_x, pontos_y, x_min, x_max, y_min, y_max, screen_width, screen_height):
     novos_pontos = []
+    scale_x = screen_width - 10
+    scale_y = screen_height - 10
+    range_x = x_max - x_min
+    range_y = y_max - y_min
     for i, e in enumerate(pontos_x):
         x = pontos_x[i]
         y = pontos_y[i]
-        novo_x = ((x - x_min) / (x_max - x_min)) * (screen_width - 10)
-        novo_y = ((y - y_min) / (y_max - y_min)) * (screen_height - 10)
+        novo_x = ((x - x_min) / range_x) * scale_x
+        novo_y = ((y - y_min) / range_y) * scale_y
         novos_pontos.append((novo_x, novo_y))
     return novos_pontos
 
@@ -118,38 +118,45 @@ def set_particles_speed(speed):
     for particle in particles:
         particle.speed = speed
 
-def process_face_detection(screen):
-    global cap, face_mesh, face_detected
-    ret, camera_image = cap.read()
-
-    results = face_mesh.process(camera_image)
-    
-    if results.multi_face_landmarks:
-        face_detected = True
-        set_particles_speed(particles_speed)
-    else:
-        face_detected = False
-        set_particles_speed(0)
-
 half = 0
 time_transition_to_final_image = 13000
 time_transition_to_final_image_counter = 0
+
+def draw_particles_final_image():
+    move_particles()
+    text_animation.draw_and_update(screen)
+
+def draw_generated_particles(index_next_to_alive):
+    for i in range(index_next_to_alive):
+        particle = particles_gerenated[i]
+        particle.update_pos()
+        particle.draw(screen)
+
+def create_generated_particles(result):
+    osc_client.send_message("bands", random.randrange(0, 1024))
+    osc_client.send_message("peak_width", random.randrange(0, 1024))
+    to_alive_created_particle(result)
+    x = random.uniform(result.pos.x - 20.0, result.pos.x + 20.0)
+    y = random.uniform(result.pos.y - 20.0, result.pos.y + 20.0)
+    to_alive_created_particle(Particle((x,y), result.dir, 1, 1, (0,0,0), False, False))
+    x = random.uniform(result.pos.x - 40.0, result.pos.x + 40.0)
+    y = random.uniform(result.pos.y - 40.0, result.pos.y + 40.0)
+    to_alive_created_particle(Particle((x,y), result.dir, 1, 1, (0,0,0), False, False))
+    x = random.uniform(result.pos.x - 80.0, result.pos.x + 80.0)
+    y = random.uniform(result.pos.y - 80.0, result.pos.y + 80.0)
+    to_alive_created_particle(Particle((x,y), result.dir, 1, 1, (0,0,0), False, False))
+    to_alive_created_particle(result)
 
 def draw_particles():
     global time, index_next_to_alive, particles_gerenated, move_particle_status, half, use_collision, time_transition_to_final_image_counter, time_transition_to_final_image
 
     if move_particle_status:
-        move_particles()
-        text_animation.draw_and_update(screen)
+        draw_particles_final_image()
         return
     
     particles_manager.clear_grid()
 
-    for i in range(index_next_to_alive):
-        particle = particles_gerenated[i]
-        particle.update_pos()
-        particle.draw(screen)
-        # particle.guidance(box, [], False)
+    draw_generated_particles(index_next_to_alive)
 
     for particle in particles:
         if wave_movement:
@@ -161,19 +168,7 @@ def draw_particles():
         i, j = particles_manager.get_particle_position_on_grid(particle)
         result = particle.guidance(box, particles_manager.grid[i][j], use_collision if face_detected else False)
         if result != None and not move_particle_status:
-            osc_client.send_message("bands", random.randrange(0, 1024))
-            osc_client.send_message("peak_width", random.randrange(0, 1024))
-            to_alive_created_particle(result)
-            x = random.uniform(result.pos.x - 20.0, result.pos.x + 20.0)
-            y = random.uniform(result.pos.y - 20.0, result.pos.y + 20.0)
-            to_alive_created_particle(Particle((x,y), result.dir, 1, 1, (0,0,0), False, False))
-            x = random.uniform(result.pos.x - 40.0, result.pos.x + 40.0)
-            y = random.uniform(result.pos.y - 40.0, result.pos.y + 40.0)
-            to_alive_created_particle(Particle((x,y), result.dir, 1, 1, (0,0,0), False, False))
-            x = random.uniform(result.pos.x - 80.0, result.pos.x + 80.0)
-            y = random.uniform(result.pos.y - 80.0, result.pos.y + 80.0)
-            to_alive_created_particle(Particle((x,y), result.dir, 1, 1, (0,0,0), False, False))
-            to_alive_created_particle(result)
+            create_generated_particles(result)
       
     time += clock.get_time()
     if use_collision and face_detected:
@@ -191,11 +186,9 @@ def to_alive_created_particle(result):
     global particles_gerenated, index_next_to_alive, move_particle_status, use_collision
     if index_next_to_alive < len(particles_gerenated):
         particles_gerenated[index_next_to_alive].pos = result.pos
-        # particles_gerenated[index_next_to_alive].original_pos = result.original_pos
         particles_gerenated[index_next_to_alive].dir = result.dir
         particles_gerenated[index_next_to_alive].speed = result.speed
         particles_gerenated[index_next_to_alive].radius = result.radius
-        # particles_gerenated[index_next_to_alive].color = (255,255,0)
         particles_gerenated[index_next_to_alive].alive = True
         index_next_to_alive += 1
     else:
@@ -226,8 +219,6 @@ def main():
  
     if use_image:
         number_of_particles = len(images)
-
-    # create_particles()
     
     running = True
     while running:
@@ -242,7 +233,11 @@ def main():
         screen.blit(bg, (0, 0))
 
         if not face_detected:
-            process_face_detection(screen)
+            face_detected = process_face_detection()
+            if face_detected:
+                set_particles_speed(particles_speed)
+            else:
+                set_particles_speed(0)
 
         if len(particles) < number_of_particles:
             create_particle()
@@ -258,14 +253,6 @@ def main():
     pygame.quit()
     cap.release()
     exit()
-
-def config_camera():
-    global cap, face_mesh
-    cap = cv2.VideoCapture(0)
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, WIDTH)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, HEIGHT)
-    mp_face_mesh = mp.solutions.face_mesh
-    face_mesh = mp_face_mesh.FaceMesh(static_image_mode=False, max_num_faces=1, min_detection_confidence=0.5)
 
 def config_text_animation(screen_width, screen_height, text_pos):
     global text_animation
@@ -307,7 +294,7 @@ if __name__ == "__main__":
     pygame.display.set_caption("Particle Simulation")
     clock = pygame.time.Clock()
 
-    config_camera()
+    config_camera(WIDTH, HEIGHT)
 
     points_x, points_y = generate_points()
     x_min, x_max = -10, 10
