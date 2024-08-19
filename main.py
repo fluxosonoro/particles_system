@@ -280,7 +280,9 @@ if __name__ == "__main__":
     image_test_8 = ImageTest("final_images/image8.jpg", WIDTH - WIDTH // 2, HEIGHT - HEIGHT // 3)  # ESTÁTUA AFRICANA
     image_test_9 = ImageTest("final_images/image20.jpg", WIDTH - WIDTH // 8, HEIGHT // 2)
 
-    image_test = image_test_8
+    images_test_list = [image_test_1, image_test_2, image_test_3, image_test_4, image_test_5, image_test_6, image_test_7, image_test_9]
+
+    image_test = random.choice(images_test_list)
 
     create_final_image(image_test)
     half = len(particles_gerenated)//15
