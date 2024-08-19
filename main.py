@@ -271,15 +271,14 @@ if __name__ == "__main__":
     box = [0, WIDTH, 0, HEIGHT]
 
     image_test_1 = ImageTest("final_images/image19.jpg", WIDTH // 2, HEIGHT // 2)
-    image_test_2 = ImageTest("final_images/image23.jpg", WIDTH, HEIGHT)
-    image_test_3 = ImageTest("final_images/image17.jpg", WIDTH, HEIGHT)
-    image_test_4 = ImageTest("final_images/image12.jpg", WIDTH - WIDTH // 3, HEIGHT - HEIGHT // 5)
-    image_test_5 = ImageTest("final_images/image24.jpg", WIDTH - WIDTH // 12, HEIGHT)
+    image_test_2 = ImageTest("final_images/image23.jpg", WIDTH // 2, HEIGHT // 2)
+    image_test_3 = ImageTest("final_images/image17.jpg", WIDTH  - WIDTH // 3, HEIGHT // 2)
+    image_test_4 = ImageTest("final_images/image12.jpg", WIDTH - WIDTH // 2, HEIGHT - HEIGHT // 3)
+    image_test_5 = ImageTest("final_images/image24.jpg", WIDTH - WIDTH // 4, HEIGHT // 2)
     image_test_6 = ImageTest("final_images/image21.jpg", WIDTH - WIDTH // 4, HEIGHT - HEIGHT // 2)  # COGUMELOS
-    image_test_7 = ImageTest("final_images/image7.png", WIDTH - WIDTH // 4, HEIGHT - HEIGHT // 10)
+    image_test_7 = ImageTest("final_images/image7.png", WIDTH - WIDTH // 2, HEIGHT - HEIGHT // 2)
     image_test_8 = ImageTest("final_images/image8.jpg", WIDTH - WIDTH // 2, HEIGHT - HEIGHT // 3)  # ESTÁTUA AFRICANA
-    image_test_9 = ImageTest("final_images/image20.jpg", WIDTH - WIDTH // 12, HEIGHT)
-    image_test_10 = ImageTest("final_images/image25.jpeg", WIDTH - WIDTH // 5, HEIGHT - HEIGHT // 2)
+    image_test_9 = ImageTest("final_images/image20.jpg", WIDTH - WIDTH // 8, HEIGHT // 2)
 
     image_test = image_test_8
 
