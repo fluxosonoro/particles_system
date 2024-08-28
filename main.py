@@ -17,7 +17,11 @@ from face_detection import *
 #Text Animation
 text_animation = None
 
+#Sound params
 osc_client = OscClient("127.0.0.1", 7400)
+peak_width_1 = 400
+peak_width_2 = 394
+bands = 146
 
 # Flags that can be changed
 use_image = True  
@@ -58,7 +62,7 @@ def move_particles():
         pygame.draw.circle(screen, particle.color, (particle.pos.x, particle.pos.y), particle.radius)
 
 def create_final_image(image_test):
-    global particles_gerenated, num_particles_gerenated
+    global particles_gerenated, num_particles_gerenated, peak_width_1_step, peak_width_2_step, bands_step
     image = Image.open(image_test.path)
     image = image.resize((image_test.width,image_test.height), Image.Resampling.LANCZOS)
     image_data = image.load()
@@ -122,8 +126,24 @@ half = 0
 time_transition_to_final_image = 13000
 time_transition_to_final_image_counter = 0
 
+def send_sound_params():
+    global peak_width_1, peak_width_2, bands
+
+    osc_client.send_message("peak_width_1", int(peak_width_1))
+    osc_client.send_message("peak_width_2", int(peak_width_2))
+    osc_client.send_message("bands", int(bands))
+    
+    peak_width_1 += (1024 - peak_width_1) * 0.01
+    peak_width_2 += (1024 - peak_width_2) * 0.01
+    bands += (532 - bands) * 0.01
+
+    print(f"peak_width_1 = {peak_width_1}")
+    print(f"peak_width_2 = {peak_width_2}")
+    print(f"bands = {bands}")
+
 def draw_particles_final_image():
     move_particles()
+    send_sound_params()
     text_animation.draw_and_update(screen)
 
 def draw_generated_particles(index_next_to_alive):
@@ -133,8 +153,6 @@ def draw_generated_particles(index_next_to_alive):
         particle.draw(screen)
 
 def create_generated_particles(result):
-    osc_client.send_message("bands", random.randrange(0, 1024))
-    osc_client.send_message("peak_width", random.randrange(0, 1024))
     to_alive_created_particle(result)
     x = random.uniform(result.pos.x - 20.0, result.pos.x + 20.0)
     y = random.uniform(result.pos.y - 20.0, result.pos.y + 20.0)
