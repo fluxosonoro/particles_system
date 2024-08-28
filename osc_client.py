@@ -10,4 +10,3 @@ class OscClient:
 
     def send_message(self, atr, message):
         self.client.send_message(atr, message)
-        print(f"sending... {atr}/{message}")
