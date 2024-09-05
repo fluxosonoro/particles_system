@@ -13,311 +13,402 @@ from floating_letters import *
 from phrases import *
 from wave_movement import *
 from face_detection import *
+import time
+from perlin_noise import *
 
-#Text Animation
-text_animation = None
+class ParticleSimulation:
+    def __init__(self):
 
-#Sound params
-osc_client = OscClient("127.0.0.1", 7400)
-peak_width_1 = 400
-peak_width_2 = 394
-bands = 146
+        #Face Detection
+        self.face_detector = FaceDetection()
 
-# Flags that can be changed
-use_image = True  
-use_collision = True
-number_of_particles = 4000
-particles_speed = 2
-particles_radius = 2
+        #Text Animation
+        self.text_animation = None
 
-# Control variables. Do not change
-images = []
-points = []
-particles = []
-box = []
-WIDTH, HEIGHT = 0,0 
-cap = None
-particle_timer = 0
-particle_interval = 1 
-particles_manager = None
-wave_movement = False
+        #Sound params
+        self.osc_client = OscClient("127.0.0.1", 7400)
+        self.peak_width_1 = 400
+        self.peak_width_2 = 394
+        self.bands = 146
 
-# Particle generation by collision
-particles_gerenated = []
-num_particles_gerenated = 0
-index_next_to_alive = 0
-last_activation_time = 0  # Timer para controlar a ativação das partículas
-move_particle_status = False
+        # Flags that can be changed
+        self.use_image = True  
+        self.use_collision = True
+        self.number_of_particles = 4000
+        self.particles_speed = 2
+        self.particles_radius = 2
 
-class ImageTest:
-    def __init__(self, path, width, height):
-        self.path = path
-        self.width = width
-        self.height = height
+        # Control variables. Do not change
+        self.images = []
+        self.points = []
+        self.particles = []
+        self.box = []
+        self.WIDTH = 0
+        self.HEIGHT = 0
+        self.cap = None
+        self.particle_timer = 0
+        self.particle_interval = 1 
+        self.particles_manager = None
+        self.wave_movement = False
+        self.center = 0
+        self.screen = None
 
-def move_particles():
-    for particle in particles_gerenated:
-        particle.pos.x += (particle.original_pos.x - particle.pos.x) * 0.01
-        particle.pos.y += (particle.original_pos.y - particle.pos.y) * 0.01
-        pygame.draw.circle(screen, particle.color, (particle.pos.x, particle.pos.y), particle.radius)
+        # Particle generation by collision
+        self.particles_gerenated = []
+        self.num_particles_gerenated = 0
+        self.index_next_to_alive = 0
+        self.last_activation_time = 0  # Timer para controlar a ativação das partículas
+        self.move_particle_status = False
+        self.restart_status = False
 
-def create_final_image(image_test):
-    global particles_gerenated, num_particles_gerenated, peak_width_1_step, peak_width_2_step, bands_step
-    image = Image.open(image_test.path)
-    image = image.resize((image_test.width,image_test.height), Image.Resampling.LANCZOS)
-    image_data = image.load()
-    num_particles_gerenated = image.width * image.height
+        self.timer  = 0
 
-    offset_x = (WIDTH - image.width) // 2
-    offset_y = (HEIGHT - image.height) // 2
-    for i in range(image.width):
-        for j in range(image.height):
-            color = image_data[i,j]
-            r = random.randint(0,1)
-            r2 = random.randint(0,1)
-            if r == 1 and r2 == 1 and color != (0,0,0):
-                position = (i + offset_x, j + offset_y)
-                particle_generated = Particle(position, Vector2(0,0), 1, 1, color, False, False)
-                particle_generated.alive = False
-                particles_gerenated.append(particle_generated)                
+        self.speed_particle_restart = 2
+        self.speed_incrementer_particle_restart = 0.05
+        self.clock = None
 
-def generate_images():
-    path = "output_images_resized"
-    valid_images = [".jpg",".gif",".png",".tga"]
-    for f in os.listdir(path):
-        ext = os.path.splitext(f)[1]
-        if ext.lower() in valid_images:
-            images.append(pygame.image.load(os.path.join(path, f)))
-            images.append(pygame.image.load(os.path.join(path, f)))
 
-def generate_points():
-    global number_of_particles
-    experiment = doubleSlit()
-    experiment.distance_to_screen = 10
-    experiment.slit_dist = 3 
-    experiment.clear_screen()
-    if use_image:
-        number_of_particles = len(images)
-    experiment.electron_beam(num_electrons=number_of_particles)
-    return experiment.get_positions()
+        self.half = 0
+        self.time_transition_to_final_image = 13000
+        self.time_transition_to_final_image_counter = 0
 
-def transformar_pontos(pontos_x, pontos_y, x_min, x_max, y_min, y_max, screen_width, screen_height):
-    novos_pontos = []
-    scale_x = screen_width - 10
-    scale_y = screen_height - 10
-    range_x = x_max - x_min
-    range_y = y_max - y_min
-    for i, e in enumerate(pontos_x):
-        x = pontos_x[i]
-        y = pontos_y[i]
-        novo_x = ((x - x_min) / range_x) * scale_x
-        novo_y = ((y - y_min) / range_y) * scale_y
-        novos_pontos.append((novo_x, novo_y))
-    return novos_pontos
 
-def add_particle(position, direction, speed, radius, color_or_image, use_image):
-    particles.append(Particle(position, direction, speed, radius, color_or_image, use_image))
+    class ImageTest:
+        def __init__(self, path, width, height):
+            self.path = path
+            self.width = width
+            self.height = height
 
-def set_particles_speed(speed):
-    for particle in particles:
-        particle.speed = speed
 
-half = 0
-time_transition_to_final_image = 13000
-time_transition_to_final_image_counter = 0
+    def move_particles_restart(self):
 
-def send_sound_params():
-    global peak_width_1, peak_width_2, bands
+        self.speed_particle_restart += self.speed_incrementer_particle_restart
 
-    osc_client.send_message("peak_width_1", int(peak_width_1))
-    osc_client.send_message("peak_width_2", int(peak_width_2))
-    osc_client.send_message("bands", int(bands))
-    
-    peak_width_1 += (1024 - peak_width_1) * 0.01
-    peak_width_2 += (1024 - peak_width_2) * 0.01
-    bands += (532 - bands) * 0.01
+        for particle in self.particles_gerenated:
+            particle.dir = perlin_noise_direction(particle, self.timer, self.center)
+            particle.pos += particle.dir * self.speed_particle_restart
+            pygame.draw.circle(self.screen, particle.color, (particle.pos.x, particle.pos.y), particle.radius)
+            # if particle.pos.x > WIDTH or particle.pos.x < 0 or particle.pos.y > HEIGHT or particle.pos.y < 0:
+            #     particles_gerenated.remove(particle)
 
-    print(f"peak_width_1 = {peak_width_1}")
-    print(f"peak_width_2 = {peak_width_2}")
-    print(f"bands = {bands}")
 
-def draw_particles_final_image():
-    move_particles()
-    send_sound_params()
-    text_animation.draw_and_update(screen)
+    def direction_to_outside(self, particle):
+        # Centro da tela
+        center = Vector2(self.WIDTH // 2, self.HEIGHT // 2)
+        
+        # Vetor da partícula até o centro da tela
+        direction = particle.pos - center
+        
+        # Normaliza o vetor para obter apenas a direção (magnitude 1)
+        return direction.normalize()
 
-def draw_generated_particles(index_next_to_alive):
-    for i in range(index_next_to_alive):
-        particle = particles_gerenated[i]
-        particle.update_pos()
-        particle.draw(screen)
+    def distance_from_center(self, particle):
+        # Centro da tela
+        center = Vector2(self.WIDTH // 2, self.HEIGHT // 2)
+        
+        # Distância da partícula até o centro
+        distance = (particle.pos - center).length()
+        
+        return distance
 
-def create_generated_particles(result):
-    to_alive_created_particle(result)
-    x = random.uniform(result.pos.x - 20.0, result.pos.x + 20.0)
-    y = random.uniform(result.pos.y - 20.0, result.pos.y + 20.0)
-    to_alive_created_particle(Particle((x,y), result.dir, 1, 1, (0,0,0), False, False))
-    x = random.uniform(result.pos.x - 40.0, result.pos.x + 40.0)
-    y = random.uniform(result.pos.y - 40.0, result.pos.y + 40.0)
-    to_alive_created_particle(Particle((x,y), result.dir, 1, 1, (0,0,0), False, False))
-    x = random.uniform(result.pos.x - 80.0, result.pos.x + 80.0)
-    y = random.uniform(result.pos.y - 80.0, result.pos.y + 80.0)
-    to_alive_created_particle(Particle((x,y), result.dir, 1, 1, (0,0,0), False, False))
-    to_alive_created_particle(result)
 
-def to_alive_created_particle(result):
-    global particles_gerenated, index_next_to_alive, move_particle_status, use_collision
-    if index_next_to_alive < len(particles_gerenated):
-        particles_gerenated[index_next_to_alive].pos = result.pos
-        particles_gerenated[index_next_to_alive].dir = result.dir
-        particles_gerenated[index_next_to_alive].speed = result.speed
-        particles_gerenated[index_next_to_alive].radius = result.radius
-        particles_gerenated[index_next_to_alive].alive = True
-        index_next_to_alive += 1
-    else:
-        move_particle_status = True
-        use_collision = False
+    def move_particles(self):
+        self.restart_status = False
 
-def draw_particles():
-    global time, index_next_to_alive, particles_gerenated, move_particle_status, half, use_collision, time_transition_to_final_image_counter, time_transition_to_final_image
+        cont = 0
 
-    if move_particle_status:
-        draw_particles_final_image()
-        return
-    
-    particles_manager.clear_grid()
+        for particle in self.particles_gerenated:
+            dx = (particle.original_pos.x - particle.pos.x)
+            dy = (particle.original_pos.y - particle.pos.y)
+            particle.pos.x += dx * 0.01
+            particle.pos.y += dy * 0.01
+            pygame.draw.circle(self.screen, particle.color, (particle.pos.x, particle.pos.y), particle.radius)
+            if abs(dx) > 0.1 or abs(dy) > 0.1:
+                cont+=1
 
-    draw_generated_particles(index_next_to_alive)
+        # print(f"{(cont*100)/len(particles_gerenated)}%")
 
-    for particle in particles:
-        if wave_movement:
-            update_wave_movement(time, particle)
-        else:
+        if cont <= len(self.particles_gerenated) * 0.70:
+            # print(f"cont: {cont}, len:({len(particles_gerenated)}), 5%: {len(particles_gerenated)* 0.41}")
+            self.restart_status = True        
+        
+        # if restart_status:
+        #     # Ordena as partículas pela distância ao centro (da mais próxima para a mais distante)
+        #     particles_gerenated = sorted(particles_gerenated, key=distance_from_center, reverse=True)
+        #     speed = 5
+
+        #     print("Restarting particles!")
+        #     for particle in particles_gerenated:
+        #         particle.dir = direction_to_outside(particle)
+        #         angle_distorcion = random.uniform(-1, 1)
+        #         particle.dir = particle.dir.rotate(math.degrees(angle_distorcion))
+        #         particle.speed = max(1, speed)
+        #         speed -= 0.001
+            
+    def create_final_image(self, image_test):
+        image = Image.open(image_test.path)
+        image = image.resize((image_test.width,image_test.height), Image.Resampling.LANCZOS)
+        image_data = image.load()
+        self.num_particles_gerenated = image.width * image.height
+
+        offset_x = (self.WIDTH - image.width) // 2
+        offset_y = (self.HEIGHT - image.height) // 2
+        for i in range(image.width):
+            for j in range(image.height):
+                color = image_data[i,j]
+                r = random.randint(0,1)
+                r2 = random.randint(0,1)
+                if r == 1 and r2 == 1 and color != (0,0,0):
+                    position = (i + offset_x, j + offset_y)
+                    particle_generated = Particle(position, Vector2(0,0), 1, 1, color, False, False)
+                    particle_generated.alive = False
+                    self.particles_gerenated.append(particle_generated)                
+
+    def generate_images(self):
+        path = "output_images_resized"
+        valid_images = [".jpg",".gif",".png",".tga"]
+        for f in os.listdir(path):
+            ext = os.path.splitext(f)[1]
+            if ext.lower() in valid_images:
+                self.images.append(pygame.image.load(os.path.join(path, f)))
+                self.images.append(pygame.image.load(os.path.join(path, f)))
+
+    def generate_points(self):
+        experiment = doubleSlit()
+        experiment.distance_to_screen = 10
+        experiment.slit_dist = 3 
+        experiment.clear_screen()
+        if self.use_image:
+            self.number_of_particles = len(self.images)
+        experiment.electron_beam(num_electrons=self.number_of_particles)
+        return experiment.get_positions()
+
+    def transformar_pontos(self, pontos_x, pontos_y, x_min, x_max, y_min, y_max, screen_width, screen_height):
+        novos_pontos = []
+        scale_x = screen_width - 10
+        scale_y = screen_height - 10
+        range_x = x_max - x_min
+        range_y = y_max - y_min
+        for i, e in enumerate(pontos_x):
+            x = pontos_x[i]
+            y = pontos_y[i]
+            novo_x = ((x - x_min) / range_x) * scale_x
+            novo_y = ((y - y_min) / range_y) * scale_y
+            novos_pontos.append((novo_x, novo_y))
+        return novos_pontos
+
+    def add_particle(self, position, direction, speed, radius, color_or_image, use_image):
+        self.particles.append(Particle(position, direction, speed, radius, color_or_image, use_image))
+
+    def set_particles_speed(self, speed):
+        for particle in self.particles:
+            particle.speed = speed
+
+    def send_sound_params(self):
+        self.osc_client.send_message("peak_width_1", int(self.peak_width_1))
+        self.osc_client.send_message("peak_width_2", int(self.peak_width_2))
+        self.osc_client.send_message("bands", int(self.bands))
+        
+        self.peak_width_1 += (1024 - self.peak_width_1) * 0.01
+        self.peak_width_2 += (1024 - self.peak_width_2) * 0.01
+        self.bands += (532 - self.bands) * 0.01
+
+    def draw_particles_final_image(self):
+        self.move_particles()
+        self.send_sound_params()
+        self.text_animation.draw_and_update(self.screen)
+
+    def draw_generated_particles(self, index_next_to_alive):
+        for i in range(self.index_next_to_alive):
+            particle = self.particles_gerenated[i]
             particle.update_pos()
-        particle.draw(screen)
-        particles_manager.add_particle_to_grid(particle)
-        i, j = particles_manager.get_particle_position_on_grid(particle)
-        result = particle.guidance(box, particles_manager.grid[i][j], use_collision if face_detected else False)
-        if result != None and not move_particle_status:
-            create_generated_particles(result)
-      
-    time += clock.get_time()
-    if use_collision and face_detected:
-        time_transition_to_final_image_counter += time//1000
+            particle.draw(self.screen)
 
-    if time_transition_to_final_image_counter > time_transition_to_final_image: # esse trecho limita a geração de partículas a um tempo "time_transition_to_final_image". se passar disso, cria todas as partículas que faltam 
-        qt = (int) ((len(particles_gerenated) - index_next_to_alive) // 2)
-        for i in range(qt):
-            particle = random.choice(particles)
-            x = particle.pos.x
-            y = particle.pos.y
-            to_alive_created_particle(Particle((x,y), particle.dir, 1, 1, (0,0,0), False, False))
+    def create_generated_particles(self, result):
+        self.to_alive_created_particle(result)
+        x = random.uniform(result.pos.x - 20.0, result.pos.x + 20.0)
+        y = random.uniform(result.pos.y - 20.0, result.pos.y + 20.0)
+        self.to_alive_created_particle(Particle((x,y), result.dir, 1, 1, (0,0,0), False, False))
+        x = random.uniform(result.pos.x - 40.0, result.pos.x + 40.0)
+        y = random.uniform(result.pos.y - 40.0, result.pos.y + 40.0)
+        self.to_alive_created_particle(Particle((x,y), result.dir, 1, 1, (0,0,0), False, False))
+        x = random.uniform(result.pos.x - 80.0, result.pos.x + 80.0)
+        y = random.uniform(result.pos.y - 80.0, result.pos.y + 80.0)
+        self.to_alive_created_particle(Particle((x,y), result.dir, 1, 1, (0,0,0), False, False))
+        self.to_alive_created_particle(result)
 
-def create_particles():
-    for _ in range(number_of_particles):
-        create_particle()
-
-def create_particle():
-    if len(particles) < number_of_particles:
-        pos = points[len(particles)]
-        angle = random.uniform(0, 2 * math.pi)  
-        dir = Vector2(math.cos(angle), math.sin(angle)).normalize()
-        speed = particles_speed if face_detected else 0
-        radius = particles_radius
-        if use_image:
-            add_particle(pos, dir, speed, radius, images[len(particles)], use_image=True)
+    def to_alive_created_particle(self, result):
+        if self.index_next_to_alive < len(self.particles_gerenated):
+            self.particles_gerenated[self.index_next_to_alive].pos = result.pos
+            self.particles_gerenated[self.index_next_to_alive].dir = result.dir
+            self.particles_gerenated[self.index_next_to_alive].speed = result.speed
+            self.particles_gerenated[self.index_next_to_alive].radius = result.radius
+            self.particles_gerenated[self.index_next_to_alive].alive = True
+            self.index_next_to_alive += 1
         else:
-            add_particle(pos, dir, speed, radius, (255, 255, 255), use_image=False)
+            self.move_particle_status = True
+            self.use_collision = False
 
-def main():
-    global number_of_particles, particles, cap, face_detected, wave_movement, time
+    def draw_particles(self):
 
-    bg = pygame.Surface((WIDTH, HEIGHT))
-    bg.fill((0, 0, 0))
- 
-    if use_image:
-        number_of_particles = len(images)
-    
-    running = True
-    while running:
-        dt = clock.tick(60) / 1000
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    running = False
+        if self.restart_status:
+            self.move_particles_restart()
+            return
+        
+        if self.move_particle_status:
+            self.draw_particles_final_image()
+            return
+        
+        self.particles_manager.clear_grid()
 
-        screen.blit(bg, (0, 0))
+        self.draw_generated_particles(self.index_next_to_alive)
 
-        if not face_detected:
-            face_detected = process_face_detection()
-            if face_detected:
-                set_particles_speed(particles_speed)
+        for particle in self.particles:
+            if self.wave_movement:
+                update_wave_movement(self.timer, particle)
             else:
-                set_particles_speed(0)
+                particle.update_pos()
+            particle.draw(self.screen)
+            self.particles_manager.add_particle_to_grid(particle)
+            i, j = self.particles_manager.get_particle_position_on_grid(particle)
+            result = particle.guidance(self.box, self.particles_manager.grid[i][j], self.use_collision if self.face_detector.face_detected else False)
+            if result != None and not self.move_particle_status:
+                self.create_generated_particles(result)
+        
+        self.timer += self.clock.get_time()
+        if self.use_collision and self.face_detector.face_detected:
+            self.time_transition_to_final_image_counter += self.timer//1000
 
-        if len(particles) < number_of_particles:
-            create_particle()
-            create_particle()
-            create_particle()
-        else:
-            wave_movement = not face_detected
+        if self.time_transition_to_final_image_counter > self.time_transition_to_final_image: # esse trecho limita a geração de partículas a um tempo "time_transition_to_final_image". se passar disso, cria todas as partículas que faltam 
+            qt = (int) ((len(self.particles_gerenated) - self.index_next_to_alive) // 2)
+            for i in range(qt):
+                particle = random.choice(self.particles)
+                x = particle.pos.x
+                y = particle.pos.y
+                self.to_alive_created_particle(Particle((x,y), particle.dir, 1, 1, (0,0,0), False, False))
 
-        draw_particles()
+    def create_particles(self):
+        for _ in range(self.number_of_particles):
+            self.create_particle()
 
-        pygame.display.update()
+    def create_particle(self):
+        if len(self.particles) < self.number_of_particles:
+            pos = self.points[len(self.particles)]
+            angle = random.uniform(0, 2 * math.pi)  
+            dir = Vector2(math.cos(angle), math.sin(angle)).normalize()
+            speed = self.particles_speed if self.face_detector.face_detected else 0
+            radius = self.particles_radius
+            if self.use_image:
+                self.add_particle(pos, dir, speed, radius, self.images[len(self.particles)], use_image=True)
+            else:
+                self.add_particle(pos, dir, speed, radius, (255, 255, 255), use_image=False)
 
-    pygame.quit()
-    cap.release()
-    exit()
+    def main(self):
+        self.generate_images()
 
-def config_text_animation(screen_width, screen_height, text_pos):
-    global text_animation
-    text_animation = TextAnimation(phrases[random.randint(0, len(phrases)-1)], screen_width, screen_height, text_pos)
+        pygame.init()
+
+        # screen = pygame.display.set_mode((2560,1080))
+        self.screen = pygame.display.set_mode((1512,982))
+        # screen = pygame.display.set_mode((0,0), pygame.FULLSCREEN)
+        WIDTH, HEIGHT = pygame.display.get_surface().get_size()
+        self.WIDTH = WIDTH
+        self.HEIGHT = HEIGHT
+        
+        self.center = Vector2(WIDTH//2, HEIGHT//2)
+
+        self.box = [0, WIDTH, 0, HEIGHT]
+
+        image_test_1 = self.ImageTest("final_images/image19.jpg", WIDTH // 2, HEIGHT // 2)
+        image_test_2 = self.ImageTest("final_images/image23.jpg", WIDTH // 2, HEIGHT // 2)
+        image_test_3 = self.ImageTest("final_images/image17.jpg", WIDTH  - WIDTH // 3, HEIGHT // 2)
+        image_test_4 = self.ImageTest("final_images/image12.jpg", WIDTH - WIDTH // 2, HEIGHT - HEIGHT // 3)
+        image_test_5 = self.ImageTest("final_images/image24.jpg", WIDTH - WIDTH // 4, HEIGHT // 2)
+        image_test_6 = self.ImageTest("final_images/image21.jpg", WIDTH - WIDTH // 4, HEIGHT - HEIGHT // 2)  # COGUMELOS
+        image_test_7 = self.ImageTest("final_images/image7.png", WIDTH - WIDTH // 2, HEIGHT - HEIGHT // 2)
+        image_test_8 = self.ImageTest("final_images/image8.jpg", WIDTH - WIDTH // 2, HEIGHT - HEIGHT // 3)  # ESTÁTUA AFRICANA
+        image_test_9 = self.ImageTest("final_images/image20.jpg", WIDTH - WIDTH // 8, HEIGHT // 2)
+
+        images_test_list = [image_test_1, image_test_2, image_test_3, image_test_4, image_test_5, image_test_6, image_test_7, image_test_8, image_test_9]
+
+        image_test = random.choice(images_test_list)
+
+        self.create_final_image(image_test_3)
+        self.half = len(self.particles_gerenated)//15
+
+        # config_text_animation(WIDTH, HEIGHT, (WIDTH//2, HEIGHT//2 + HEIGHT//3))
+
+        self.config_text_animation(WIDTH, HEIGHT, (WIDTH//2, (HEIGHT - image_test.height//2)+image_test.height//4))
+
+        self.particles_manager = ParticlesManager(WIDTH, HEIGHT, 15)
+        pygame.display.set_caption("Particle Simulation")
+        self.clock = pygame.time.Clock()
+
+        self.face_detector.config_camera(WIDTH, HEIGHT)
+
+        points_x, points_y = self.generate_points()
+        x_min, x_max = -10, 10
+        y_min, y_max = -4, 4
+        self.points = self.transformar_pontos(points_x, points_y, x_min, x_max, y_min, y_max, WIDTH, HEIGHT)
+
+        bg = pygame.Surface((WIDTH, HEIGHT))
+        bg.fill((0, 0, 0))
+    
+        if self.use_image:
+            number_of_particles = len(self.images)
+        
+        running = True
+        while running:
+            dt = self.clock.tick(60) / 1000
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        running = False
+
+            self.screen.blit(bg, (0, 0))
+
+            if not self.face_detector.face_detected:
+                self.face_detector.face_detected = self.face_detector.process_face_detection()
+                if self.face_detector.face_detected:
+                    self.set_particles_speed(self.particles_speed)
+                else:
+                    self.set_particles_speed(0)
+
+            if len(self.particles) < number_of_particles:
+                self.create_particle()
+                self.create_particle()
+                self.create_particle()
+
+                # remover
+                self.create_particle()
+                self.create_particle()
+                self.create_particle()
+                self.create_particle()
+                self.create_particle()
+                self.create_particle()
+                self.create_particle()
+                self.create_particle()
+                self.create_particle()
+                self.create_particle()
+                self.create_particle()
+                self.create_particle()
+            else:
+                self.wave_movement = not self.face_detector.face_detected
+
+            self.draw_particles()
+
+            pygame.display.update()
+
+        pygame.quit()
+        self.cap.release()
+        exit()
+
+    def config_text_animation(self, screen_width, screen_height, text_pos):
+        self.text_animation = TextAnimation(phrases[random.randint(0, len(phrases)-1)], screen_width, screen_height, text_pos)
 
 if __name__ == "__main__":
 
-    generate_images()
-
-    pygame.init()
-
-    # screen = pygame.display.set_mode((2560,1080))
-    screen = pygame.display.set_mode((0,0), pygame.FULLSCREEN)
-    WIDTH, HEIGHT = pygame.display.get_surface().get_size()
-
-    box = [0, WIDTH, 0, HEIGHT]
-
-    image_test_1 = ImageTest("final_images/image19.jpg", WIDTH // 2, HEIGHT // 2)
-    image_test_2 = ImageTest("final_images/image23.jpg", WIDTH // 2, HEIGHT // 2)
-    image_test_3 = ImageTest("final_images/image17.jpg", WIDTH  - WIDTH // 3, HEIGHT // 2)
-    image_test_4 = ImageTest("final_images/image12.jpg", WIDTH - WIDTH // 2, HEIGHT - HEIGHT // 3)
-    image_test_5 = ImageTest("final_images/image24.jpg", WIDTH - WIDTH // 4, HEIGHT // 2)
-    image_test_6 = ImageTest("final_images/image21.jpg", WIDTH - WIDTH // 4, HEIGHT - HEIGHT // 2)  # COGUMELOS
-    image_test_7 = ImageTest("final_images/image7.png", WIDTH - WIDTH // 2, HEIGHT - HEIGHT // 2)
-    image_test_8 = ImageTest("final_images/image8.jpg", WIDTH - WIDTH // 2, HEIGHT - HEIGHT // 3)  # ESTÁTUA AFRICANA
-    image_test_9 = ImageTest("final_images/image20.jpg", WIDTH - WIDTH // 8, HEIGHT // 2)
-
-    images_test_list = [image_test_1, image_test_2, image_test_3, image_test_4, image_test_5, image_test_6, image_test_7, image_test_9]
-
-    image_test = random.choice(images_test_list)
-
-    create_final_image(image_test)
-    half = len(particles_gerenated)//15
-
-    # config_text_animation(WIDTH, HEIGHT, (WIDTH//2, HEIGHT//2 + HEIGHT//3))
-
-    config_text_animation(WIDTH, HEIGHT, (WIDTH//2, (HEIGHT - image_test.height//2)+image_test.height//4))
-
-    particles_manager = ParticlesManager(WIDTH, HEIGHT, 15)
-    pygame.display.set_caption("Particle Simulation")
-    clock = pygame.time.Clock()
-
-    config_camera(WIDTH, HEIGHT)
-
-    points_x, points_y = generate_points()
-    x_min, x_max = -10, 10
-    y_min, y_max = -4, 4
-    points = transformar_pontos(points_x, points_y, x_min, x_max, y_min, y_max, WIDTH, HEIGHT)
-
-    main()
+    simulation = ParticleSimulation()
+    simulation.main()
