@@ -16,6 +16,25 @@ from face_detection import *
 import time
 from perlin_noise import *
 
+class ImageTest:
+    def __init__(self, path, width, height):
+        self.path = path
+        self.width = width
+        self.height = height
+
+    @staticmethod
+    def get_list(WIDTH, HEIGHT):
+        image_test_1 = ImageTest("final_images/image19.jpg", WIDTH // 2, HEIGHT // 2)
+        image_test_2 = ImageTest("final_images/image23.jpg", WIDTH // 2, HEIGHT // 2)
+        image_test_3 = ImageTest("final_images/image17.jpg", WIDTH  - WIDTH // 3, HEIGHT // 2)
+        image_test_4 = ImageTest("final_images/image12.jpg", WIDTH - WIDTH // 2, HEIGHT - HEIGHT // 3)
+        image_test_5 = ImageTest("final_images/image24.jpg", WIDTH - WIDTH // 4, HEIGHT // 2)
+        image_test_6 = ImageTest("final_images/image21.jpg", WIDTH - WIDTH // 4, HEIGHT - HEIGHT // 2)  # COGUMELOS
+        image_test_7 = ImageTest("final_images/image7.png", WIDTH - WIDTH // 2, HEIGHT - HEIGHT // 2)
+        image_test_8 = ImageTest("final_images/image8.jpg", WIDTH - WIDTH // 2, HEIGHT - HEIGHT // 3)  # ESTÁTUA AFRICANA
+        image_test_9 = ImageTest("final_images/image20.jpg", WIDTH - WIDTH // 8, HEIGHT // 2)
+        return [image_test_1, image_test_2, image_test_3, image_test_4, image_test_5, image_test_6, image_test_7, image_test_8, image_test_9]
+
 class ParticleSimulation:
     def init_variables(self):
         #Face Detection
@@ -89,21 +108,12 @@ class ParticleSimulation:
 
         self.box = [0, WIDTH, 0, HEIGHT]
 
-        image_test_1 = self.ImageTest("final_images/image19.jpg", WIDTH // 2, HEIGHT // 2)
-        image_test_2 = self.ImageTest("final_images/image23.jpg", WIDTH // 2, HEIGHT // 2)
-        image_test_3 = self.ImageTest("final_images/image17.jpg", WIDTH  - WIDTH // 3, HEIGHT // 2)
-        image_test_4 = self.ImageTest("final_images/image12.jpg", WIDTH - WIDTH // 2, HEIGHT - HEIGHT // 3)
-        image_test_5 = self.ImageTest("final_images/image24.jpg", WIDTH - WIDTH // 4, HEIGHT // 2)
-        image_test_6 = self.ImageTest("final_images/image21.jpg", WIDTH - WIDTH // 4, HEIGHT - HEIGHT // 2)  # COGUMELOS
-        image_test_7 = self.ImageTest("final_images/image7.png", WIDTH - WIDTH // 2, HEIGHT - HEIGHT // 2)
-        image_test_8 = self.ImageTest("final_images/image8.jpg", WIDTH - WIDTH // 2, HEIGHT - HEIGHT // 3)  # ESTÁTUA AFRICANA
-        image_test_9 = self.ImageTest("final_images/image20.jpg", WIDTH - WIDTH // 8, HEIGHT // 2)
-
-        images_test_list = [image_test_1, image_test_2, image_test_3, image_test_4, image_test_5, image_test_6, image_test_7, image_test_8, image_test_9]
+        
+        images_test_list = ImageTest.get_list(WIDTH, HEIGHT)
 
         image_test = random.choice(images_test_list)
 
-        self.create_final_image(image_test_3)
+        self.create_final_image(image_test)
         self.half = len(self.particles_gerenated)//15
 
         # config_text_animation(WIDTH, HEIGHT, (WIDTH//2, HEIGHT//2 + HEIGHT//3))
@@ -131,13 +141,6 @@ class ParticleSimulation:
 
     def __init__(self):
         self.init_variables()
-        
-    class ImageTest:
-        def __init__(self, path, width, height):
-            self.path = path
-            self.width = width
-            self.height = height
-
 
     def move_particles_restart(self):
 
