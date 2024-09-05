@@ -17,8 +17,7 @@ import time
 from perlin_noise import *
 
 class ParticleSimulation:
-    def __init__(self):
-
+    def init_variables(self):
         #Face Detection
         self.face_detector = FaceDetection()
 
@@ -72,7 +71,67 @@ class ParticleSimulation:
         self.time_transition_to_final_image = 13000
         self.time_transition_to_final_image_counter = 0
 
+        self.count_particles_to_restart = 0
 
+
+        self.generate_images()
+
+        pygame.init()
+
+        # screen = pygame.display.set_mode((2560,1080))
+        self.screen = pygame.display.set_mode((1512,982))
+        # screen = pygame.display.set_mode((0,0), pygame.FULLSCREEN)
+        WIDTH, HEIGHT = pygame.display.get_surface().get_size()
+        self.WIDTH = WIDTH
+        self.HEIGHT = HEIGHT
+        
+        self.center = Vector2(WIDTH//2, HEIGHT//2)
+
+        self.box = [0, WIDTH, 0, HEIGHT]
+
+        image_test_1 = self.ImageTest("final_images/image19.jpg", WIDTH // 2, HEIGHT // 2)
+        image_test_2 = self.ImageTest("final_images/image23.jpg", WIDTH // 2, HEIGHT // 2)
+        image_test_3 = self.ImageTest("final_images/image17.jpg", WIDTH  - WIDTH // 3, HEIGHT // 2)
+        image_test_4 = self.ImageTest("final_images/image12.jpg", WIDTH - WIDTH // 2, HEIGHT - HEIGHT // 3)
+        image_test_5 = self.ImageTest("final_images/image24.jpg", WIDTH - WIDTH // 4, HEIGHT // 2)
+        image_test_6 = self.ImageTest("final_images/image21.jpg", WIDTH - WIDTH // 4, HEIGHT - HEIGHT // 2)  # COGUMELOS
+        image_test_7 = self.ImageTest("final_images/image7.png", WIDTH - WIDTH // 2, HEIGHT - HEIGHT // 2)
+        image_test_8 = self.ImageTest("final_images/image8.jpg", WIDTH - WIDTH // 2, HEIGHT - HEIGHT // 3)  # ESTÁTUA AFRICANA
+        image_test_9 = self.ImageTest("final_images/image20.jpg", WIDTH - WIDTH // 8, HEIGHT // 2)
+
+        images_test_list = [image_test_1, image_test_2, image_test_3, image_test_4, image_test_5, image_test_6, image_test_7, image_test_8, image_test_9]
+
+        image_test = random.choice(images_test_list)
+
+        self.create_final_image(image_test_3)
+        self.half = len(self.particles_gerenated)//15
+
+        # config_text_animation(WIDTH, HEIGHT, (WIDTH//2, HEIGHT//2 + HEIGHT//3))
+
+        self.config_text_animation(WIDTH, HEIGHT, (WIDTH//2, (HEIGHT - image_test.height//2)+image_test.height//4))
+
+        self.particles_manager = ParticlesManager(WIDTH, HEIGHT, 15)
+        pygame.display.set_caption("Particle Simulation")
+        self.clock = pygame.time.Clock()
+
+        self.face_detector.config_camera(WIDTH, HEIGHT)
+
+        points_x, points_y = self.generate_points()
+        x_min, x_max = -10, 10
+        y_min, y_max = -4, 4
+        self.points = self.transformar_pontos(points_x, points_y, x_min, x_max, y_min, y_max, WIDTH, HEIGHT)
+
+        self.bg = pygame.Surface((WIDTH, HEIGHT))
+        self.bg.fill((0, 0, 0))
+    
+        if self.use_image:
+            self.number_of_particles = len(self.images)
+        
+        self.running = True
+
+    def __init__(self):
+        self.init_variables()
+        
     class ImageTest:
         def __init__(self, path, width, height):
             self.path = path
@@ -84,12 +143,20 @@ class ParticleSimulation:
 
         self.speed_particle_restart += self.speed_incrementer_particle_restart
 
+        should_restart = True
+
         for particle in self.particles_gerenated:
             particle.dir = perlin_noise_direction(particle, self.timer, self.center)
             particle.pos += particle.dir * self.speed_particle_restart
-            pygame.draw.circle(self.screen, particle.color, (particle.pos.x, particle.pos.y), particle.radius)
-            # if particle.pos.x > WIDTH or particle.pos.x < 0 or particle.pos.y > HEIGHT or particle.pos.y < 0:
-            #     particles_gerenated.remove(particle)
+            if particle.alive:
+                should_restart = False
+                pygame.draw.circle(self.screen, particle.color, (particle.pos.x, particle.pos.y), particle.radius)
+                if particle.pos.x > self.WIDTH or particle.pos.x < 0 or particle.pos.y > self.HEIGHT or particle.pos.y < 0:
+                     particle.alive = False
+        
+        if should_restart:
+            self.restart_status = False
+            self.init_variables()
 
 
     def direction_to_outside(self, particle):
@@ -303,71 +370,17 @@ class ParticleSimulation:
             else:
                 self.add_particle(pos, dir, speed, radius, (255, 255, 255), use_image=False)
 
-    def main(self):
-        self.generate_images()
-
-        pygame.init()
-
-        # screen = pygame.display.set_mode((2560,1080))
-        self.screen = pygame.display.set_mode((1512,982))
-        # screen = pygame.display.set_mode((0,0), pygame.FULLSCREEN)
-        WIDTH, HEIGHT = pygame.display.get_surface().get_size()
-        self.WIDTH = WIDTH
-        self.HEIGHT = HEIGHT
-        
-        self.center = Vector2(WIDTH//2, HEIGHT//2)
-
-        self.box = [0, WIDTH, 0, HEIGHT]
-
-        image_test_1 = self.ImageTest("final_images/image19.jpg", WIDTH // 2, HEIGHT // 2)
-        image_test_2 = self.ImageTest("final_images/image23.jpg", WIDTH // 2, HEIGHT // 2)
-        image_test_3 = self.ImageTest("final_images/image17.jpg", WIDTH  - WIDTH // 3, HEIGHT // 2)
-        image_test_4 = self.ImageTest("final_images/image12.jpg", WIDTH - WIDTH // 2, HEIGHT - HEIGHT // 3)
-        image_test_5 = self.ImageTest("final_images/image24.jpg", WIDTH - WIDTH // 4, HEIGHT // 2)
-        image_test_6 = self.ImageTest("final_images/image21.jpg", WIDTH - WIDTH // 4, HEIGHT - HEIGHT // 2)  # COGUMELOS
-        image_test_7 = self.ImageTest("final_images/image7.png", WIDTH - WIDTH // 2, HEIGHT - HEIGHT // 2)
-        image_test_8 = self.ImageTest("final_images/image8.jpg", WIDTH - WIDTH // 2, HEIGHT - HEIGHT // 3)  # ESTÁTUA AFRICANA
-        image_test_9 = self.ImageTest("final_images/image20.jpg", WIDTH - WIDTH // 8, HEIGHT // 2)
-
-        images_test_list = [image_test_1, image_test_2, image_test_3, image_test_4, image_test_5, image_test_6, image_test_7, image_test_8, image_test_9]
-
-        image_test = random.choice(images_test_list)
-
-        self.create_final_image(image_test_3)
-        self.half = len(self.particles_gerenated)//15
-
-        # config_text_animation(WIDTH, HEIGHT, (WIDTH//2, HEIGHT//2 + HEIGHT//3))
-
-        self.config_text_animation(WIDTH, HEIGHT, (WIDTH//2, (HEIGHT - image_test.height//2)+image_test.height//4))
-
-        self.particles_manager = ParticlesManager(WIDTH, HEIGHT, 15)
-        pygame.display.set_caption("Particle Simulation")
-        self.clock = pygame.time.Clock()
-
-        self.face_detector.config_camera(WIDTH, HEIGHT)
-
-        points_x, points_y = self.generate_points()
-        x_min, x_max = -10, 10
-        y_min, y_max = -4, 4
-        self.points = self.transformar_pontos(points_x, points_y, x_min, x_max, y_min, y_max, WIDTH, HEIGHT)
-
-        bg = pygame.Surface((WIDTH, HEIGHT))
-        bg.fill((0, 0, 0))
-    
-        if self.use_image:
-            number_of_particles = len(self.images)
-        
-        running = True
-        while running:
+    def render(self):
+        while self.running:
             dt = self.clock.tick(60) / 1000
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    running = False
+                    self.running = False
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
-                        running = False
+                        self.running = False
 
-            self.screen.blit(bg, (0, 0))
+            self.screen.blit(self.bg, (0, 0))
 
             if not self.face_detector.face_detected:
                 self.face_detector.face_detected = self.face_detector.process_face_detection()
@@ -376,21 +389,7 @@ class ParticleSimulation:
                 else:
                     self.set_particles_speed(0)
 
-            if len(self.particles) < number_of_particles:
-                self.create_particle()
-                self.create_particle()
-                self.create_particle()
-
-                # remover
-                self.create_particle()
-                self.create_particle()
-                self.create_particle()
-                self.create_particle()
-                self.create_particle()
-                self.create_particle()
-                self.create_particle()
-                self.create_particle()
-                self.create_particle()
+            if len(self.particles) < self.number_of_particles:
                 self.create_particle()
                 self.create_particle()
                 self.create_particle()
@@ -411,4 +410,4 @@ class ParticleSimulation:
 if __name__ == "__main__":
 
     simulation = ParticleSimulation()
-    simulation.main()
+    simulation.render()
