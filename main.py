@@ -13,7 +13,6 @@ from floating_letters import *
 from phrases import *
 from wave_movement import *
 from face_detection import *
-import time
 from perlin_noise import *
 
 class ImageTest:
@@ -82,16 +81,14 @@ class ParticleSimulation:
         self.timer  = 0
 
         self.speed_particle_restart = 2
-        self.speed_incrementer_particle_restart = 0.05
+        self.speed_incrementer_particle_restart = 0.01
         self.clock = None
-
 
         self.half = 0
         self.time_transition_to_final_image = 13000
         self.time_transition_to_final_image_counter = 0
 
         self.count_particles_to_restart = 0
-
 
         self.generate_images()
 
@@ -108,7 +105,6 @@ class ParticleSimulation:
 
         self.box = [0, WIDTH, 0, HEIGHT]
 
-        
         images_test_list = ImageTest.get_list(WIDTH, HEIGHT)
 
         image_test = random.choice(images_test_list)
@@ -143,44 +139,26 @@ class ParticleSimulation:
         self.init_variables()
 
     def move_particles_restart(self):
-
         self.speed_particle_restart += self.speed_incrementer_particle_restart
 
         should_restart = True
 
+        # sould_apply_noise = True
+
         for particle in self.particles_gerenated:
-            particle.dir = perlin_noise_direction(particle, self.timer, self.center)
-            particle.pos += particle.dir * self.speed_particle_restart
             if particle.alive:
+                # if sould_apply_noise:
+                particle.dir = perlin_noise_direction(particle, self.timer, self.center)
+                # sould_apply_noise = not sould_apply_noise
+                particle.pos += particle.dir * self.speed_particle_restart
                 should_restart = False
                 pygame.draw.circle(self.screen, particle.color, (particle.pos.x, particle.pos.y), particle.radius)
                 if particle.pos.x > self.WIDTH or particle.pos.x < 0 or particle.pos.y > self.HEIGHT or particle.pos.y < 0:
-                     particle.alive = False
+                    particle.alive = False
         
         if should_restart:
             self.restart_status = False
             self.init_variables()
-
-
-    def direction_to_outside(self, particle):
-        # Centro da tela
-        center = Vector2(self.WIDTH // 2, self.HEIGHT // 2)
-        
-        # Vetor da partícula até o centro da tela
-        direction = particle.pos - center
-        
-        # Normaliza o vetor para obter apenas a direção (magnitude 1)
-        return direction.normalize()
-
-    def distance_from_center(self, particle):
-        # Centro da tela
-        center = Vector2(self.WIDTH // 2, self.HEIGHT // 2)
-        
-        # Distância da partícula até o centro
-        distance = (particle.pos - center).length()
-        
-        return distance
-
 
     def move_particles(self):
         self.restart_status = False
@@ -196,24 +174,8 @@ class ParticleSimulation:
             if abs(dx) > 0.1 or abs(dy) > 0.1:
                 cont+=1
 
-        # print(f"{(cont*100)/len(particles_gerenated)}%")
-
         if cont <= len(self.particles_gerenated) * 0.70:
-            # print(f"cont: {cont}, len:({len(particles_gerenated)}), 5%: {len(particles_gerenated)* 0.41}")
             self.restart_status = True        
-        
-        # if restart_status:
-        #     # Ordena as partículas pela distância ao centro (da mais próxima para a mais distante)
-        #     particles_gerenated = sorted(particles_gerenated, key=distance_from_center, reverse=True)
-        #     speed = 5
-
-        #     print("Restarting particles!")
-        #     for particle in particles_gerenated:
-        #         particle.dir = direction_to_outside(particle)
-        #         angle_distorcion = random.uniform(-1, 1)
-        #         particle.dir = particle.dir.rotate(math.degrees(angle_distorcion))
-        #         particle.speed = max(1, speed)
-        #         speed -= 0.001
             
     def create_final_image(self, image_test):
         image = Image.open(image_test.path)
@@ -289,7 +251,7 @@ class ParticleSimulation:
         self.text_animation.draw_and_update(self.screen)
 
     def draw_generated_particles(self, index_next_to_alive):
-        for i in range(self.index_next_to_alive):
+        for i in range(index_next_to_alive):
             particle = self.particles_gerenated[i]
             particle.update_pos()
             particle.draw(self.screen)
@@ -411,6 +373,5 @@ class ParticleSimulation:
         self.text_animation = TextAnimation(phrases[random.randint(0, len(phrases)-1)], screen_width, screen_height, text_pos)
 
 if __name__ == "__main__":
-
     simulation = ParticleSimulation()
     simulation.render()
