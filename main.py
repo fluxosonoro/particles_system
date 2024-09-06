@@ -37,7 +37,7 @@ class ImageTest:
 class ParticleSimulation:
     def init_variables(self):
         #Face Detection
-        self.face_detector = FaceDetection()
+        self.face_detector.init_variables()
 
         #Text Animation
         self.text_animation = None
@@ -136,6 +136,8 @@ class ParticleSimulation:
         self.running = True
 
     def __init__(self):
+        self.face_detector = FaceDetection()
+        
         self.init_variables()
 
     def move_particles_restart(self):
