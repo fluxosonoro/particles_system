@@ -2,9 +2,13 @@ import cv2
 import mediapipe as mp
 
 class FaceDetection:
-    def __init__(self):
-        self.face_mesh = None
+
+    def init_variables(self):
         self.face_detected = False
+
+    def __init__(self):
+        self.init_variables()
+        self.face_mesh = None
         self.cap = None
 
     def config_camera(self, screen_width, screen_height):
