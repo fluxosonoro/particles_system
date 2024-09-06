@@ -60,16 +60,9 @@ class ParticleSimulation:
         self.images = []
         self.points = []
         self.particles = []
-        # self.box = []
-        # self.WIDTH = 0
-        # self.HEIGHT = 0
-        self.cap = None
         self.particle_timer = 0
         self.particle_interval = 1 
-        self.particles_manager = None
         self.wave_movement = False
-        # self.center = 0
-        # self.screen = None
 
         # Particle generation by collision
         self.particles_gerenated = []
@@ -93,9 +86,7 @@ class ParticleSimulation:
 
         self.generate_images()
 
-        images_test_list = ImageTest.get_list(self.WIDTH, self.HEIGHT)
-
-        image_test = random.choice(images_test_list)
+        image_test = random.choice(self.images_test_list)
 
         self.create_final_image(image_test)
         self.half = len(self.particles_gerenated)//15
@@ -104,11 +95,8 @@ class ParticleSimulation:
 
         self.config_text_animation(self.WIDTH, self.HEIGHT, (self.WIDTH//2, (self.HEIGHT - image_test.height//2)+image_test.height//4))
 
-        self.particles_manager = ParticlesManager(self.WIDTH, self.HEIGHT, 15)
         
         self.clock = pygame.time.Clock()
-
-        self.face_detector.config_camera(self.WIDTH, self.HEIGHT)
 
         points_x, points_y = self.generate_points()
         x_min, x_max = -10, 10
@@ -134,10 +122,19 @@ class ParticleSimulation:
         WIDTH, HEIGHT = pygame.display.get_surface().get_size()
         self.WIDTH = WIDTH
         self.HEIGHT = HEIGHT
-        
         self.center = Vector2(WIDTH//2, HEIGHT//2)
-
         self.box = [0, WIDTH, 0, HEIGHT]
+    
+    def create_face_detector(self):
+        self.face_detector = FaceDetection()
+        self.face_detector.config_camera(self.WIDTH, self.HEIGHT)
+
+    def create_images_for_test(self):
+        self.images_test_list = ImageTest.get_list(self.WIDTH, self.HEIGHT)
+
+    def create_particles_manager(self):
+        self.particles_manager = ParticlesManager(self.WIDTH, self.HEIGHT, 15)
+
 
     def __init__(self):
         pygame.init()
@@ -145,7 +142,10 @@ class ParticleSimulation:
         self.create_screen()
 
         self.create_osc_client()
-        self.face_detector = FaceDetection()
+        self.create_face_detector()
+        self.create_images_for_test()
+        self.create_particles_manager()
+
 
         self.init_variables()
 
@@ -378,7 +378,7 @@ class ParticleSimulation:
             pygame.display.update()
 
         pygame.quit()
-        self.cap.release()
+        self.face_detector.cap.release()
         exit()
 
     def config_text_animation(self, screen_width, screen_height, text_pos):
