@@ -31,7 +31,7 @@ class ImageTest:
         image_test_6 = ImageTest("final_images/image21.jpg", WIDTH - WIDTH // 4, HEIGHT - HEIGHT // 2)  # COGUMELOS
         image_test_7 = ImageTest("final_images/image7.png", WIDTH - WIDTH // 2, HEIGHT - HEIGHT // 2)
         image_test_8 = ImageTest("final_images/image8.jpg", WIDTH - WIDTH // 2, HEIGHT - HEIGHT // 3)  # ESTÁTUA AFRICANA
-        image_test_9 = ImageTest("final_images/image20.jpg", WIDTH - WIDTH // 8, HEIGHT // 2)
+        image_test_9 = ImageTest("final_images/image20.jpg", WIDTH - WIDTH // 5, HEIGHT // 2)
         return [image_test_1, image_test_2, image_test_3, image_test_4, image_test_5, image_test_6, image_test_7, image_test_8, image_test_9]
 
 class ParticleSimulation:
@@ -98,9 +98,7 @@ class ParticleSimulation:
         self.create_final_image(self.image_test)
         self.half = len(self.particles_from_collision)//15
         self.config_text_animation(self.WIDTH, self.HEIGHT, (self.WIDTH//2, (self.HEIGHT - self.image_test.height//2)+self.image_test.height//4))
-
         self.clock = pygame.time.Clock()
-        
         self.init_double_slit_points()
         self.init_background()
     
@@ -133,19 +131,14 @@ class ParticleSimulation:
     def create_particles_manager(self):
         self.particles_manager = ParticlesManager(self.WIDTH, self.HEIGHT, 15)
 
-
     def __init__(self):
         pygame.init()
-
         self.create_screen()
-
         self.create_osc_client()
         self.create_face_detector()
         self.create_images_for_test()
         self.create_particles_manager()
         self.generate_images()
-
-
         self.init_variables()
 
     def move_particles_restart(self):
@@ -173,7 +166,6 @@ class ParticleSimulation:
 
     def move_particles(self):
         self.restart_status = False
-
         cont = 0
 
         for particle in self.particles_from_collision:
@@ -186,7 +178,13 @@ class ParticleSimulation:
                 cont+=1
 
         if cont <= len(self.particles_from_collision) * 0.70:
-            self.restart_status = True        
+            self.restart_status = True
+            # Remove 30% das partículas aleatoriamente
+            num_to_remove = int(len(self.particles_from_collision) * 0.30)
+            particles_to_remove = random.sample(self.particles_from_collision, num_to_remove)
+            for particle in particles_to_remove:
+                self.particles_from_collision.remove(particle)
+
             
     def create_final_image(self, image_test):
         image = Image.open(image_test.path)
