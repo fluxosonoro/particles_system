@@ -44,21 +44,26 @@ class ParticleSimulation:
     def init_text_variables(self):
         self.text_animation = None
 
-    def init_variables(self):
-        self.face_detector.init_variables()
-        self.init_text_variables()
-        self.init_sound_variables()
-
-        # Flags that can be changed
+    def init_particles_variables(self):
         self.use_image = True  
         self.use_collision = True
         self.number_of_particles = 4000
         self.particles_speed = 2
         self.particles_radius = 2
+    
+    def init_double_slit_points(self):
+        points_x, points_y = self.generate_points()
+        x_min, x_max = -10, 10
+        y_min, y_max = -4, 4
+        self.points = self.transformar_pontos(points_x, points_y, x_min, x_max, y_min, y_max, self.WIDTH, self.HEIGHT)
+
+    def init_variables(self):
+        self.face_detector.init_variables()
+        self.init_text_variables()
+        self.init_sound_variables()
+        self.init_particles_variables()        
 
         # Control variables. Do not change
-        self.images = []
-        self.points = []
         self.particles = []
         self.particle_timer = 0
         self.particle_interval = 1 
@@ -78,13 +83,10 @@ class ParticleSimulation:
         self.speed_incrementer_particle_restart = 0.01
         self.clock = None
 
-        self.half = 0
         self.time_transition_to_final_image = 13000
         self.time_transition_to_final_image_counter = 0
 
         self.count_particles_to_restart = 0
-
-        self.generate_images()
 
         image_test = random.choice(self.images_test_list)
 
@@ -97,11 +99,9 @@ class ParticleSimulation:
 
         
         self.clock = pygame.time.Clock()
-
-        points_x, points_y = self.generate_points()
-        x_min, x_max = -10, 10
-        y_min, y_max = -4, 4
-        self.points = self.transformar_pontos(points_x, points_y, x_min, x_max, y_min, y_max, self.WIDTH, self.HEIGHT)
+        
+        self.init_double_slit_points()
+        
 
         self.bg = pygame.Surface((self.WIDTH, self.HEIGHT))
         self.bg.fill((0, 0, 0))
@@ -145,6 +145,7 @@ class ParticleSimulation:
         self.create_face_detector()
         self.create_images_for_test()
         self.create_particles_manager()
+        self.generate_images()
 
 
         self.init_variables()
@@ -209,6 +210,7 @@ class ParticleSimulation:
                     self.particles_gerenated.append(particle_generated)                
 
     def generate_images(self):
+        self.images = []
         path = "output_images_resized"
         valid_images = [".jpg",".gif",".png",".tga"]
         for f in os.listdir(path):
