@@ -35,18 +35,19 @@ class ImageTest:
         return [image_test_1, image_test_2, image_test_3, image_test_4, image_test_5, image_test_6, image_test_7, image_test_8, image_test_9]
 
 class ParticleSimulation:
-    def init_variables(self):
-        #Face Detection
-        self.face_detector.init_variables()
 
-        #Text Animation
-        self.text_animation = None
-
-        #Sound params
-        self.osc_client = OscClient("127.0.0.1", 7400)
+    def init_sound_variables(self):
         self.peak_width_1 = 400
         self.peak_width_2 = 394
         self.bands = 146
+    
+    def init_text_variables(self):
+        self.text_animation = None
+
+    def init_variables(self):
+        self.face_detector.init_variables()
+        self.init_text_variables()
+        self.init_sound_variables()
 
         # Flags that can be changed
         self.use_image = True  
@@ -59,16 +60,16 @@ class ParticleSimulation:
         self.images = []
         self.points = []
         self.particles = []
-        self.box = []
-        self.WIDTH = 0
-        self.HEIGHT = 0
+        # self.box = []
+        # self.WIDTH = 0
+        # self.HEIGHT = 0
         self.cap = None
         self.particle_timer = 0
         self.particle_interval = 1 
         self.particles_manager = None
         self.wave_movement = False
-        self.center = 0
-        self.screen = None
+        # self.center = 0
+        # self.screen = None
 
         # Particle generation by collision
         self.particles_gerenated = []
@@ -92,8 +93,41 @@ class ParticleSimulation:
 
         self.generate_images()
 
-        pygame.init()
+        images_test_list = ImageTest.get_list(self.WIDTH, self.HEIGHT)
 
+        image_test = random.choice(images_test_list)
+
+        self.create_final_image(image_test)
+        self.half = len(self.particles_gerenated)//15
+
+        # config_text_animation(WIDTH, HEIGHT, (WIDTH//2, HEIGHT//2 + HEIGHT//3))
+
+        self.config_text_animation(self.WIDTH, self.HEIGHT, (self.WIDTH//2, (self.HEIGHT - image_test.height//2)+image_test.height//4))
+
+        self.particles_manager = ParticlesManager(self.WIDTH, self.HEIGHT, 15)
+        
+        self.clock = pygame.time.Clock()
+
+        self.face_detector.config_camera(self.WIDTH, self.HEIGHT)
+
+        points_x, points_y = self.generate_points()
+        x_min, x_max = -10, 10
+        y_min, y_max = -4, 4
+        self.points = self.transformar_pontos(points_x, points_y, x_min, x_max, y_min, y_max, self.WIDTH, self.HEIGHT)
+
+        self.bg = pygame.Surface((self.WIDTH, self.HEIGHT))
+        self.bg.fill((0, 0, 0))
+    
+        if self.use_image:
+            self.number_of_particles = len(self.images)
+        
+        self.running = True
+
+    def create_osc_client(self):
+        self.osc_client = OscClient("127.0.0.1", 7400)
+    
+    def create_screen(self):
+        pygame.display.set_caption("Particle Simulation")
         # screen = pygame.display.set_mode((2560,1080))
         self.screen = pygame.display.set_mode((1512,982))
         # screen = pygame.display.set_mode((0,0), pygame.FULLSCREEN)
@@ -105,39 +139,14 @@ class ParticleSimulation:
 
         self.box = [0, WIDTH, 0, HEIGHT]
 
-        images_test_list = ImageTest.get_list(WIDTH, HEIGHT)
-
-        image_test = random.choice(images_test_list)
-
-        self.create_final_image(image_test)
-        self.half = len(self.particles_gerenated)//15
-
-        # config_text_animation(WIDTH, HEIGHT, (WIDTH//2, HEIGHT//2 + HEIGHT//3))
-
-        self.config_text_animation(WIDTH, HEIGHT, (WIDTH//2, (HEIGHT - image_test.height//2)+image_test.height//4))
-
-        self.particles_manager = ParticlesManager(WIDTH, HEIGHT, 15)
-        pygame.display.set_caption("Particle Simulation")
-        self.clock = pygame.time.Clock()
-
-        self.face_detector.config_camera(WIDTH, HEIGHT)
-
-        points_x, points_y = self.generate_points()
-        x_min, x_max = -10, 10
-        y_min, y_max = -4, 4
-        self.points = self.transformar_pontos(points_x, points_y, x_min, x_max, y_min, y_max, WIDTH, HEIGHT)
-
-        self.bg = pygame.Surface((WIDTH, HEIGHT))
-        self.bg.fill((0, 0, 0))
-    
-        if self.use_image:
-            self.number_of_particles = len(self.images)
-        
-        self.running = True
-
     def __init__(self):
+        pygame.init()
+
+        self.create_screen()
+
+        self.create_osc_client()
         self.face_detector = FaceDetection()
-        
+
         self.init_variables()
 
     def move_particles_restart(self):
