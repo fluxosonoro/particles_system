@@ -50,6 +50,10 @@ class ParticleSimulation:
         self.number_of_particles = 4000
         self.particles_speed = 2
         self.particles_radius = 2
+        self.particles = []
+        self.particle_timer = 0
+        self.particle_interval = 1 
+        self.wave_movement = False
     
     def init_double_slit_points(self):
         points_x, points_y = self.generate_points()
@@ -57,54 +61,48 @@ class ParticleSimulation:
         y_min, y_max = -4, 4
         self.points = self.transformar_pontos(points_x, points_y, x_min, x_max, y_min, y_max, self.WIDTH, self.HEIGHT)
 
-    def init_variables(self):
-        self.face_detector.init_variables()
-        self.init_text_variables()
-        self.init_sound_variables()
-        self.init_particles_variables()        
-
-        # Control variables. Do not change
-        self.particles = []
-        self.particle_timer = 0
-        self.particle_interval = 1 
-        self.wave_movement = False
-
-        # Particle generation by collision
-        self.particles_gerenated = []
-        self.num_particles_gerenated = 0
+    def init_particles_from_collision_variables(self):
+        self.particles_from_collision = []
+        self.num_particles_from_collision = 0
         self.index_next_to_alive = 0
         self.last_activation_time = 0  # Timer para controlar a ativação das partículas
         self.move_particle_status = False
         self.restart_status = False
 
-        self.timer  = 0
+    def init_background(self):
+        self.bg = pygame.Surface((self.WIDTH, self.HEIGHT))
+        self.bg.fill((0, 0, 0))
 
+    def init_restart_transition_variables(self):
         self.speed_particle_restart = 2
         self.speed_incrementer_particle_restart = 0.01
-        self.clock = None
-
         self.time_transition_to_final_image = 13000
         self.time_transition_to_final_image_counter = 0
-
         self.count_particles_to_restart = 0
+    
+    def init_timer(self):
+        self.timer = 0
 
-        image_test = random.choice(self.images_test_list)
+    def choise_final_image(self):
+        self.image_test = random.choice(self.images_test_list)
 
-        self.create_final_image(image_test)
-        self.half = len(self.particles_gerenated)//15
+    def init_variables(self):
+        self.face_detector.init_variables()
+        self.init_text_variables()
+        self.init_sound_variables()
+        self.init_particles_variables()        
+        self.init_particles_from_collision_variables()
+        self.init_restart_transition_variables()
+        self.init_timer()
+        self.choise_final_image()
+        self.create_final_image(self.image_test)
+        self.half = len(self.particles_from_collision)//15
+        self.config_text_animation(self.WIDTH, self.HEIGHT, (self.WIDTH//2, (self.HEIGHT - self.image_test.height//2)+self.image_test.height//4))
 
-        # config_text_animation(WIDTH, HEIGHT, (WIDTH//2, HEIGHT//2 + HEIGHT//3))
-
-        self.config_text_animation(self.WIDTH, self.HEIGHT, (self.WIDTH//2, (self.HEIGHT - image_test.height//2)+image_test.height//4))
-
-        
         self.clock = pygame.time.Clock()
         
         self.init_double_slit_points()
-        
-
-        self.bg = pygame.Surface((self.WIDTH, self.HEIGHT))
-        self.bg.fill((0, 0, 0))
+        self.init_background()
     
         if self.use_image:
             self.number_of_particles = len(self.images)
@@ -158,7 +156,7 @@ class ParticleSimulation:
 
         # sould_apply_noise = True
 
-        for particle in self.particles_gerenated:
+        for particle in self.particles_from_collision:
             if particle.alive:
                 # if sould_apply_noise:
                 particle.dir = perlin_noise_direction(particle, self.timer, self.center)
@@ -178,7 +176,7 @@ class ParticleSimulation:
 
         cont = 0
 
-        for particle in self.particles_gerenated:
+        for particle in self.particles_from_collision:
             dx = (particle.original_pos.x - particle.pos.x)
             dy = (particle.original_pos.y - particle.pos.y)
             particle.pos.x += dx * 0.01
@@ -187,14 +185,14 @@ class ParticleSimulation:
             if abs(dx) > 0.1 or abs(dy) > 0.1:
                 cont+=1
 
-        if cont <= len(self.particles_gerenated) * 0.70:
+        if cont <= len(self.particles_from_collision) * 0.70:
             self.restart_status = True        
             
     def create_final_image(self, image_test):
         image = Image.open(image_test.path)
         image = image.resize((image_test.width,image_test.height), Image.Resampling.LANCZOS)
         image_data = image.load()
-        self.num_particles_gerenated = image.width * image.height
+        self.num_particles_from_collision = image.width * image.height
 
         offset_x = (self.WIDTH - image.width) // 2
         offset_y = (self.HEIGHT - image.height) // 2
@@ -207,7 +205,7 @@ class ParticleSimulation:
                     position = (i + offset_x, j + offset_y)
                     particle_generated = Particle(position, Vector2(0,0), 1, 1, color, False, False)
                     particle_generated.alive = False
-                    self.particles_gerenated.append(particle_generated)                
+                    self.particles_from_collision.append(particle_generated)                
 
     def generate_images(self):
         self.images = []
@@ -266,7 +264,7 @@ class ParticleSimulation:
 
     def draw_generated_particles(self, index_next_to_alive):
         for i in range(index_next_to_alive):
-            particle = self.particles_gerenated[i]
+            particle = self.particles_from_collision[i]
             particle.update_pos()
             particle.draw(self.screen)
 
@@ -284,12 +282,12 @@ class ParticleSimulation:
         self.to_alive_created_particle(result)
 
     def to_alive_created_particle(self, result):
-        if self.index_next_to_alive < len(self.particles_gerenated):
-            self.particles_gerenated[self.index_next_to_alive].pos = result.pos
-            self.particles_gerenated[self.index_next_to_alive].dir = result.dir
-            self.particles_gerenated[self.index_next_to_alive].speed = result.speed
-            self.particles_gerenated[self.index_next_to_alive].radius = result.radius
-            self.particles_gerenated[self.index_next_to_alive].alive = True
+        if self.index_next_to_alive < len(self.particles_from_collision):
+            self.particles_from_collision[self.index_next_to_alive].pos = result.pos
+            self.particles_from_collision[self.index_next_to_alive].dir = result.dir
+            self.particles_from_collision[self.index_next_to_alive].speed = result.speed
+            self.particles_from_collision[self.index_next_to_alive].radius = result.radius
+            self.particles_from_collision[self.index_next_to_alive].alive = True
             self.index_next_to_alive += 1
         else:
             self.move_particle_status = True
@@ -326,7 +324,7 @@ class ParticleSimulation:
             self.time_transition_to_final_image_counter += self.timer//1000
 
         if self.time_transition_to_final_image_counter > self.time_transition_to_final_image: # esse trecho limita a geração de partículas a um tempo "time_transition_to_final_image". se passar disso, cria todas as partículas que faltam 
-            qt = (int) ((len(self.particles_gerenated) - self.index_next_to_alive) // 2)
+            qt = (int) ((len(self.particles_from_collision) - self.index_next_to_alive) // 2)
             for i in range(qt):
                 particle = random.choice(self.particles)
                 x = particle.pos.x
