@@ -139,6 +139,7 @@ class ParticleSimulation:
         self.init_variables()
 
     def move_particles_restart(self):
+        self.send_sound_params(400, 394, 146, self.speed_incrementer_particle_restart)
         self.speed_particle_restart += self.speed_incrementer_particle_restart
 
         should_restart = True
@@ -236,18 +237,18 @@ class ParticleSimulation:
         for particle in self.particles:
             particle.speed = speed
 
-    def send_sound_params(self):
+    def send_sound_params(self, peak_width_1_target, peak_width_2_target, bands_target, factor):
         self.osc_client.send_message("peak_width_1", int(self.peak_width_1))
         self.osc_client.send_message("peak_width_2", int(self.peak_width_2))
         self.osc_client.send_message("bands", int(self.bands))
         
-        self.peak_width_1 += (1024 - self.peak_width_1) * 0.01
-        self.peak_width_2 += (1024 - self.peak_width_2) * 0.01
-        self.bands += (532 - self.bands) * 0.01
+        self.peak_width_1 += (peak_width_1_target - self.peak_width_1) * factor
+        self.peak_width_2 += (peak_width_2_target - self.peak_width_2) * factor
+        self.bands += (bands_target - self.bands) * factor
 
     def draw_particles_final_image(self):
         self.move_particles()
-        self.send_sound_params()
+        self.send_sound_params(1024, 1024, 532, 0.01)
         self.text_animation.draw_and_update(self.screen)
 
     def draw_generated_particles(self, index_next_to_alive):
