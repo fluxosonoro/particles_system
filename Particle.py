@@ -23,6 +23,13 @@ class Particle:
         self.collision_status = False
         self.collisions_count = 0
 
+        self.noise_offset_x = 0
+        self.noise_offset_y = 0
+        self.direction_x = 0
+        self.direction_y = 0
+        self.center_x = 0
+        self.center_y = 0
+
     def draw(self, screen, ):
         if self.alive:
             if self.use_image:
