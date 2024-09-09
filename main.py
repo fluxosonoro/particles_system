@@ -13,7 +13,7 @@ from floating_letters import *
 from phrases import *
 from wave_movement import *
 from face_detection import *
-from perlin_noise import *
+import noise
 
 class ImageTest:
     def __init__(self, path, width, height):
@@ -28,10 +28,10 @@ class ImageTest:
         image_test_3 = ImageTest("final_images/image17.jpg", WIDTH  - WIDTH // 3, HEIGHT // 2)
         image_test_4 = ImageTest("final_images/image12.jpg", WIDTH - WIDTH // 2, HEIGHT - HEIGHT // 3)
         image_test_5 = ImageTest("final_images/image24.jpg", WIDTH - WIDTH // 4, HEIGHT // 2)
-        image_test_6 = ImageTest("final_images/image21.jpg", WIDTH - WIDTH // 4, HEIGHT - HEIGHT // 2)  # COGUMELOS
+        image_test_6 = ImageTest("final_images/image21.jpg", WIDTH - WIDTH // 3, HEIGHT - HEIGHT // 2)  # COGUMELOS
         image_test_7 = ImageTest("final_images/image7.png", WIDTH - WIDTH // 2, HEIGHT - HEIGHT // 2)
         image_test_8 = ImageTest("final_images/image8.jpg", WIDTH - WIDTH // 2, HEIGHT - HEIGHT // 3)  # ESTÁTUA AFRICANA
-        image_test_9 = ImageTest("final_images/image20.jpg", WIDTH - WIDTH // 5, HEIGHT // 2)
+        image_test_9 = ImageTest("final_images/image20.jpg", WIDTH - WIDTH // 3, HEIGHT // 2)
         return [image_test_1, image_test_2, image_test_3, image_test_4, image_test_5, image_test_6, image_test_7, image_test_8, image_test_9]
 
 class ParticleSimulation:
@@ -112,9 +112,9 @@ class ParticleSimulation:
     
     def create_screen(self):
         pygame.display.set_caption("Particle Simulation")
-        # screen = pygame.display.set_mode((2560,1080))
-        self.screen = pygame.display.set_mode((1512,982))
-        # screen = pygame.display.set_mode((0,0), pygame.FULLSCREEN)
+        # self.screen = pygame.display.set_mode((2560,1080))
+        # self.screen = pygame.display.set_mode((1512,982))
+        self.screen = pygame.display.set_mode((0,0), pygame.FULLSCREEN)
         WIDTH, HEIGHT = pygame.display.get_surface().get_size()
         self.WIDTH = WIDTH
         self.HEIGHT = HEIGHT
@@ -151,10 +151,23 @@ class ParticleSimulation:
 
         for particle in self.particles_from_collision:
             if particle.alive:
+                particle.noise_offset_x += 0.01
+                particle.noise_offset_y += 0.01
+
+                # Gerar deslocamento baseado em Perlin Noise
+                angle = noise.pnoise2(particle.noise_offset_x, particle.noise_offset_y) * 2 * math.pi
+                
+                # Desvio orgânico a partir do Perlin Noise
+                noise_dx = math.cos(angle) * 0.5  # Pequena variação no x
+                noise_dy = math.sin(angle) * 0.5  # Pequena variação no y
+
+                # Atualizar posição movendo para fora, com ruído perlin aplicado
+                particle.pos.x += (particle.direction_x + noise_dx) * particle.speed
+                particle.pos.y += (particle.direction_y + noise_dy) * particle.speed
                 # if sould_apply_noise:
-                particle.dir = perlin_noise_direction(particle, self.timer, self.center)
+                # particle.dir = perlin_noise_direction(particle, self.timer)
                 # sould_apply_noise = not sould_apply_noise
-                particle.pos += particle.dir * self.speed_particle_restart
+                # particle.pos += particle.dir * self.speed_particle_restart
                 should_restart = False
                 pygame.draw.circle(self.screen, particle.color, (particle.pos.x, particle.pos.y), particle.radius)
                 if particle.pos.x > self.WIDTH or particle.pos.x < 0 or particle.pos.y > self.HEIGHT or particle.pos.y < 0:
@@ -176,14 +189,25 @@ class ParticleSimulation:
             pygame.draw.circle(self.screen, particle.color, (particle.pos.x, particle.pos.y), particle.radius)
             if abs(dx) > 0.1 or abs(dy) > 0.1:
                 cont+=1
-
-        if cont <= len(self.particles_from_collision) * 0.70:
+        
+        if cont <= len(self.particles_from_collision) * 0.84:
             self.restart_status = True
             # Remove 30% das partículas aleatoriamente
             num_to_remove = int(len(self.particles_from_collision) * 0.30)
             particles_to_remove = random.sample(self.particles_from_collision, num_to_remove)
             for particle in particles_to_remove:
                 self.particles_from_collision.remove(particle)
+
+            for particle in self.particles_from_collision:
+                particle.noise_offset_x = random.uniform(0, 1000)
+                particle.noise_offset_y = random.uniform(0, 1000)
+                particle.speed = random.uniform(1, 3)
+                
+                # Vetor de direção com base na distância do centro
+                particle.center_x, particle.center_y = self.WIDTH / 2, self.HEIGHT / 2
+                direction_angle = math.atan2(particle.pos.y - particle.center_y, particle.pos.x - particle.center_x)
+                particle.direction_x = math.cos(direction_angle)
+                particle.direction_y = math.sin(direction_angle)
 
             
     def create_final_image(self, image_test):
