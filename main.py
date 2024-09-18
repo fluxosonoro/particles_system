@@ -38,8 +38,8 @@ class ParticleSimulation:
 
     def init_sound_variables(self):
         self.peak_width_1 = 400
-        self.peak_width_2 = 394
-        self.bands = 146
+        self.peak_width_2 = 146
+        self.bands = 394
     
     def init_text_variables(self):
         self.text_animation = None
